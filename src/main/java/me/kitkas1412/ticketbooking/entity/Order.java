@@ -1,13 +1,8 @@
 package me.kitkas1412.ticketbooking.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
-
-import java.util.UUID;
 
 @Entity
 @Getter
@@ -16,16 +11,29 @@ import java.util.UUID;
 @AllArgsConstructor
 @SuperBuilder
 @Table(name =  "orders")
-public class Order {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "order_id")
-    private UUID orderId;
+public class Order extends BaseEntity {
 
-    @Column(name = "idempotency_key", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "event_id", nullable = false)
+    private Event event;
+
+    @Column(name = "idempotency_key", nullable = false, unique = true)
     private String idempotencyKey;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    @Builder.Default
+    private OrderStatus status = OrderStatus.PENDING;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Integer version;
 
     @OneToOne
     @JoinColumn(name = "ticket_id", nullable = false)
     private Ticket ticket;
+
+    private enum OrderStatus{
+        PENDING, CONFIRMED, CANCELLED, FAILED,
+    }
 }
