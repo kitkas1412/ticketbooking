@@ -24,9 +24,9 @@ public class Ticket {
     @Builder.Default
     private TicketStatus status = TicketStatus.AVAILABLE;
 
-    @Version
-    @Column(name = "version", nullable = false)
-    private Integer version;
+//    @Version
+//    @Column(name = "version", nullable = false)
+//    private Integer version;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id", nullable = false)

@@ -1,23 +1,27 @@
 package me.kitkas1412.ticketbooking.controller;
 
+import me.kitkas1412.ticketbooking.dto.request.BuyTicketRequest;
 import me.kitkas1412.ticketbooking.dto.request.CreateEventRequest;
 import me.kitkas1412.ticketbooking.dto.response.EventResponse;
+import me.kitkas1412.ticketbooking.dto.response.TicketResponse;
 import me.kitkas1412.ticketbooking.service.EventService;
+import me.kitkas1412.ticketbooking.service.TicketService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/events")
 public class EventController {
 
     private final EventService eventService;
+    private final TicketService ticketService;
 
-    public EventController(EventService eventService) {
+    public EventController(EventService eventService, TicketService ticketService) {
         this.eventService = eventService;
+        this.ticketService = ticketService;
     }
 
     @PostMapping
@@ -26,5 +30,9 @@ public class EventController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-
+    @PostMapping("/{eventId}/buy")
+    public ResponseEntity<TicketResponse> buyTicket(@RequestBody BuyTicketRequest request, @PathVariable UUID eventId){
+        TicketResponse response = ticketService.buyTicket(request, eventId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
 }

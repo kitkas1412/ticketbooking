@@ -4,6 +4,7 @@ import me.kitkas1412.ticketbooking.dto.request.CreateEventRequest;
 import me.kitkas1412.ticketbooking.dto.response.EventResponse;
 import me.kitkas1412.ticketbooking.entity.Event;
 import me.kitkas1412.ticketbooking.entity.Ticket;
+import me.kitkas1412.ticketbooking.mapper.EventMapper;
 import me.kitkas1412.ticketbooking.repository.EventRepository;
 import me.kitkas1412.ticketbooking.repository.TicketRepository;
 import org.springframework.stereotype.Service;
@@ -17,10 +18,12 @@ public class EventService {
 
     private final EventRepository eventRepository;
     private final TicketRepository ticketRepository;
+//    private final EventMapper eventMapper;
 
     public EventService(EventRepository eventRepository, TicketRepository ticketRepository) {
         this.eventRepository = eventRepository;
         this.ticketRepository = ticketRepository;
+//        this.eventMapper = eventMapper;
     }
 
     @Transactional
@@ -34,6 +37,8 @@ public class EventService {
         }
 
         ticketRepository.saveAll(ticketList);
+
+//        return eventMapper.toResponse(event);
 
         return new EventResponse(event.getEventId(), event.getName(), event.getQuantity());
     }
