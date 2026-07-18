@@ -5,6 +5,7 @@ import me.kitkas1412.ticketbooking.dto.request.CreateEventRequest;
 import me.kitkas1412.ticketbooking.dto.response.EventResponse;
 import me.kitkas1412.ticketbooking.dto.response.TicketResponse;
 import me.kitkas1412.ticketbooking.service.EventService;
+import me.kitkas1412.ticketbooking.service.EventServiceImpl;
 import me.kitkas1412.ticketbooking.service.TicketService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,13 +14,13 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/events")
+@RequestMapping("/api/events")
 public class EventController {
 
-    private final EventService eventService;
+    private final EventServiceImpl eventService;
     private final TicketService ticketService;
 
-    public EventController(EventService eventService, TicketService ticketService) {
+    public EventController(EventServiceImpl eventService, TicketService ticketService) {
         this.eventService = eventService;
         this.ticketService = ticketService;
     }

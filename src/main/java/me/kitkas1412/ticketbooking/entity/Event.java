@@ -13,12 +13,14 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
+@ToString(callSuper = true)
 @Table(name = "event")
 public class Event extends BaseEntity {
 
-    @Column(name = "events_name", nullable = false)
+    @Column(name = "name", nullable = false)
     private String name;
 
+    @Column(name = "description", nullable = false)
     private String description;
 
     @Column(name = "total_tickets", nullable = false)
@@ -38,7 +40,7 @@ public class Event extends BaseEntity {
     @Column(name = "version")
     private Integer version;
 
-    private enum EventStatus {
+    public enum EventStatus {
         DRAFT, ON_SALE, SOLD_OUT, CLOSED
     }
 }

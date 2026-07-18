@@ -22,13 +22,13 @@ public class TicketService {
     private final EventRepository eventRepository;
     private final TicketRepository ticketRepository;
     private final OrderRepository orderRepository;
-//    private final TicketMapper ticketMapper;
+    private final TicketMapper ticketMapper;
 
-    public TicketService(EventRepository eventRepository, TicketRepository ticketRepository, OrderRepository orderRepository) {
+    public TicketService(EventRepository eventRepository, TicketRepository ticketRepository, OrderRepository orderRepository, TicketMapper ticketMapper) {
         this.eventRepository = eventRepository;
         this.ticketRepository = ticketRepository;
         this.orderRepository = orderRepository;
-//        this.ticketMapper = ticketMapper;
+        this.ticketMapper = ticketMapper;
     }
 
     @Transactional
@@ -42,9 +42,7 @@ public class TicketService {
 
         Order order = orderRepository.save(Order.builder().idempotencyKey(request.idempotencyKey()).ticket(ticket).build());
 
-//        return ticketMapper.toResponse(ticket);
-
-        return new TicketResponse(ticket.getTicketId(), ticket.getStatus(), ticket.getEvent().getEventId(), order.getOrderId());
+        return ticketMapper.toResponse(ticket, order);
     }
 
     private Ticket findAvailableTicketOrThrow(Event event){
