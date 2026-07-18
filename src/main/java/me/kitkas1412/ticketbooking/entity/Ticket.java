@@ -1,10 +1,8 @@
 package me.kitkas1412.ticketbooking.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.util.UUID;
 
@@ -13,6 +11,7 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@SuperBuilder
 @Table(name = "ticket")
 public class Ticket {
     @Id
@@ -22,7 +21,8 @@ public class Ticket {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private TicketStatus status;
+    @Builder.Default
+    private TicketStatus status = TicketStatus.AVAILABLE;
 
     @Version
     @Column(name = "version", nullable = false)
