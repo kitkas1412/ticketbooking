@@ -2,6 +2,7 @@ package me.kitkas1412.ticketbooking.controller;
 
 import me.kitkas1412.ticketbooking.dto.request.BuyTicketRequest;
 import me.kitkas1412.ticketbooking.dto.request.CreateEventRequest;
+import me.kitkas1412.ticketbooking.dto.response.ApiResponse;
 import me.kitkas1412.ticketbooking.dto.response.BuyTicketResponse;
 import me.kitkas1412.ticketbooking.dto.response.EventResponse;
 import me.kitkas1412.ticketbooking.service.impl.EventServiceImpl;
@@ -25,14 +26,14 @@ public class EventController {
     }
 
     @PostMapping
-    public ResponseEntity<EventResponse> createEvent(@RequestBody CreateEventRequest request){
+    public ResponseEntity<ApiResponse<EventResponse>> createEvent(@RequestBody CreateEventRequest request){
         EventResponse response = eventService.createEvent(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 
     @PostMapping("/{eventId}/buy")
-    public ResponseEntity<BuyTicketResponse> buyTicket(@RequestBody BuyTicketRequest request, @PathVariable UUID eventId){
+    public ResponseEntity<ApiResponse<BuyTicketResponse>> buyTicket(@RequestBody BuyTicketRequest request, @PathVariable UUID eventId){
         BuyTicketResponse response = orderService.buyTicket(request, eventId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 }

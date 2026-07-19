@@ -46,6 +46,9 @@ public class OrderServiceImpl implements OrderService {
 
         if(redisTemplate.opsForValue().decrement(key) < 0){
             redisTemplate.opsForValue().increment(key);
+            if (!eventRepository.existsById(eventId)){
+                throw new EventNotFoundException("Không tìm thấy Event!");
+            }
             throw new NoTicketAvailableException("Hết vé!");
         }
 
