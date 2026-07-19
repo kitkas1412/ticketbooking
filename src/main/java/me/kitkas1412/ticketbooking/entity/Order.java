@@ -30,10 +30,6 @@ public class Order extends BaseEntity {
     @Column(name = "version", nullable = false)
     private Integer version;
 
-    @OneToOne
-    @JoinColumn(name = "ticket_id", nullable = false)
-    private Ticket ticket;
-
     private enum OrderStatus{
         PENDING, CONFIRMED, CANCELLED, FAILED,
     }

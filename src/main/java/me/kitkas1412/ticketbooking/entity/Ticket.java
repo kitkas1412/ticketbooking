@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.math.BigDecimal;
+
 @Entity
 @Getter
 @Setter
@@ -20,6 +22,9 @@ public class Ticket extends BaseEntity{
 
     @Column(name = "seat_code", nullable = false)
     private Integer seatCode;
+
+    @Column(name = "price", nullable = false, precision = 12, scale = 2)
+    private BigDecimal price;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
