@@ -1,0 +1,249 @@
+{
+  "info": {
+    "_postman_id": "b6f2a6b0-2c1e-4e7a-9f3a-6f1a4a2b7e10",
+    "name": "TicketBooking",
+    "description": "API tests cho ticketbooking. Chạy theo Collection Runner theo đúng thứ tự folder: Events -> Tickets -> Sold Out Flow (mỗi folder phụ thuộc biến do folder trước set ra).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
+    { "key": "eventId", "value": "", "type": "string" },
+    { "key": "soldOutEventId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Events",
+      "item": [
+        {
+          "name": "Create Event",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test(\"Response has eventId\", function () {",
+                  "    pm.expect(jsonData.eventId).to.be.a(\"string\");",
+                  "});",
+                  "",
+                  "pm.test(\"totalTickets and eventStatus match request\", function () {",
+                  "    pm.expect(jsonData.totalTickets).to.eql(5);",
+                  "    pm.expect(jsonData.eventStatus).to.eql(\"DRAFT\");",
+                  "});",
+                  "",
+                  "pm.collectionVariables.set(\"eventId\", jsonData.eventId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Concert ABC\",\n  \"description\": \"Live concert ABC\",\n  \"totalTickets\": 5,\n  \"ticketPrice\": 200000,\n  \"saleStartAt\": \"2026-07-19T00:00:00Z\",\n  \"saleEndAt\": \"2026-08-19T00:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/events",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "events" ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tickets",
+      "item": [
+        {
+          "name": "Buy Ticket - Success",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test(\"Response has ticketId, seatCode, orderId, price\", function () {",
+                  "    pm.expect(jsonData.ticketId).to.be.a(\"string\");",
+                  "    pm.expect(jsonData.seatCode).to.be.a(\"number\");",
+                  "    pm.expect(jsonData.orderId).to.be.a(\"string\");",
+                  "    pm.expect(jsonData.price).to.not.be.undefined;",
+                  "});",
+                  "",
+                  "pm.test(\"eventId matches requested event\", function () {",
+                  "    pm.expect(jsonData.eventId).to.eql(pm.collectionVariables.get(\"eventId\"));",
+                  "});",
+                  "",
+                  "pm.test(\"Ticket status is SOLD\", function () {",
+                  "    pm.expect(jsonData.status).to.eql(\"SOLD\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idempotencyKey\": \"{{$guid}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{eventId}}/buy",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "events", "{{eventId}}", "buy" ]
+            }
+          }
+        },
+        {
+          "name": "Buy Ticket - Event Not Found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idempotencyKey\": \"{{$guid}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/events/00000000-0000-0000-0000-000000000000/buy",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "events", "00000000-0000-0000-0000-000000000000", "buy" ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sold Out Flow",
+      "item": [
+        {
+          "name": "Create Event (1 ticket)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "pm.collectionVariables.set(\"soldOutEventId\", jsonData.eventId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sold Out Event\",\n  \"description\": \"Chi con 1 ve de test conflict\",\n  \"totalTickets\": 1,\n  \"ticketPrice\": 100000,\n  \"saleStartAt\": \"2026-07-19T00:00:00Z\",\n  \"saleEndAt\": \"2026-08-19T00:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/events",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "events" ]
+            }
+          }
+        },
+        {
+          "name": "Buy Last Ticket (Success)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idempotencyKey\": \"{{$guid}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{soldOutEventId}}/buy",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "events", "{{soldOutEventId}}", "buy" ]
+            }
+          }
+        },
+        {
+          "name": "Buy Again - No Ticket Available (Conflict)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 409\", function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idempotencyKey\": \"{{$guid}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{soldOutEventId}}/buy",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "events", "{{soldOutEventId}}", "buy" ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
