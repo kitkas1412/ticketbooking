@@ -49,17 +49,22 @@ public class OrderServiceImpl implements OrderService {
             throw new NoTicketAvailableException("Hết vé!");
         }
 
-        Event event = findEventByIdOrThrow(eventId);
-        Ticket ticket = ticketService.reserveTicket(event);
+        try {
+            Event event = findEventByIdOrThrow(eventId);
+            Ticket ticket = ticketService.reserveTicket(event);
 
-        Order order = orderRepository.save(Order.builder()
-                .idempotencyKey(request.idempotencyKey())
-                .event(event)
-                .build());
+            Order order = orderRepository.save(Order.builder()
+                    .idempotencyKey(request.idempotencyKey())
+                    .event(event)
+                    .build());
 
-        orderItemService.createOrderItem(order, ticket, ticket.getPrice());
+            orderItemService.createOrderItem(order, ticket, ticket.getPrice());
 
-        return ticketMapper.toBuyTicketResponse(ticket, order);
+            return ticketMapper.toBuyTicketResponse(ticket, order);
+        } catch (RuntimeException e){
+            redisTemplate.opsForValue().increment(key);
+            throw e;
+        }
     }
 
     private Event findEventByIdOrThrow(UUID eventId) {
