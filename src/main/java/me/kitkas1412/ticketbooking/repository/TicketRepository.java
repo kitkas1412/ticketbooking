@@ -11,4 +11,6 @@ import java.util.UUID;
 @Repository
 public interface TicketRepository extends JpaRepository<Ticket, UUID> {
     Optional<Ticket> findFirstByEventAndStatus(Event event, Ticket.TicketStatus ticketStatus);
+
+    Long countByEventAndStatus(Event event, Ticket.TicketStatus status);
 }
