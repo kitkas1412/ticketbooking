@@ -1,7 +1,6 @@
 services:
-  app:
+  app1:
     build: .
-    container_name: ticketbookingsystem-app
     depends_on:
       - postgres
       - redis
@@ -13,8 +12,34 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASS: ${POSTGRES_PASS}
       POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - "8080:8080"
+
+  app2:
+    build: .
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_HOST: postgres
+      REDIS_HOST: redis
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASS: ${POSTGRES_PASS}
+      POSTGRES_DB: ${POSTGRES_DB}
+
+  app3:
+    build: .
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_HOST: postgres
+      REDIS_HOST: redis
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASS: ${POSTGRES_PASS}
+      POSTGRES_DB: ${POSTGRES_DB}
 
   postgres:
     image: postgres:16
@@ -48,6 +73,17 @@ services:
       - "15672:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "80:80"
+    depends_on:
+      - app1
+      - app2
+      - app3
 
 volumes:
   postgres_data:
