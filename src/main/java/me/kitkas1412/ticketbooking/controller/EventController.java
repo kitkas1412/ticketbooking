@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -33,7 +34,10 @@ public class EventController {
 
     @PostMapping("/{eventId}/buy")
     public ResponseEntity<ApiResponse<BuyTicketResponse>> buyTicket(@RequestBody BuyTicketRequest request, @PathVariable UUID eventId){
-        BuyTicketResponse response = orderService.buyTicket(request, eventId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+        Optional<BuyTicketResponse> response = orderService.buyTicket(request, eventId);
+        if (response.isPresent()) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response.get()));
+        }
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success(null));
     }
 }

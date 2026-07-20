@@ -18,6 +18,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -41,8 +43,14 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public BuyTicketResponse buyTicket(BuyTicketRequest request, UUID eventId) {
+    public Optional<BuyTicketResponse> buyTicket(BuyTicketRequest request, UUID eventId) {
         String key = TicketInventoryKey.availableTickets(eventId);
+        String idempotencyKey = TicketInventoryKey.idempotencyKey(request.idempotencyKey());
+
+        if (!redisTemplate.opsForValue().setIfAbsent(idempotencyKey, "1", Duration.ofMillis(300000))){
+            return Optional.empty();
+        }
+
 
         if(redisTemplate.opsForValue().decrement(key) < 0){
             redisTemplate.opsForValue().increment(key);
@@ -63,7 +71,7 @@ public class OrderServiceImpl implements OrderService {
 
             orderItemService.createOrderItem(order, ticket, ticket.getPrice());
 
-            return ticketMapper.toBuyTicketResponse(ticket, order);
+            return Optional.of(ticketMapper.toBuyTicketResponse(ticket, order));
         } catch (RuntimeException e){
             redisTemplate.opsForValue().increment(key);
             throw e;

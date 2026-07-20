@@ -8,4 +8,8 @@ public final class TicketInventoryKey {
     public static String availableTickets(UUID eventId){
         return "event:" + eventId + ":tickets_available";
     }
+
+    public static String idempotencyKey(String idempotencyKey){
+        return "idempotencyKey:" + idempotencyKey;
+    }
 }
