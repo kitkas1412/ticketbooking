@@ -4,13 +4,16 @@ import me.kitkas1412.ticketbooking.dto.request.BuyTicketRequest;
 import me.kitkas1412.ticketbooking.dto.response.BuyTicketAcceptedResponse;
 import me.kitkas1412.ticketbooking.entity.Event;
 import me.kitkas1412.ticketbooking.entity.Order;
+import me.kitkas1412.ticketbooking.entity.OrderItem;
 import me.kitkas1412.ticketbooking.exception.EventNotFoundException;
 import me.kitkas1412.ticketbooking.exception.NoTicketAvailableException;
+import me.kitkas1412.ticketbooking.exception.OrderNotFoundException;
 import me.kitkas1412.ticketbooking.mapper.TicketMapper;
 import me.kitkas1412.ticketbooking.rabbitmq.BuyTicketMessage;
 import me.kitkas1412.ticketbooking.rabbitmq.RabbitMQConfig;
 import me.kitkas1412.ticketbooking.redis.TicketInventoryKey;
 import me.kitkas1412.ticketbooking.repository.EventRepository;
+import me.kitkas1412.ticketbooking.repository.OrderItemRepository;
 import me.kitkas1412.ticketbooking.repository.OrderRepository;
 import me.kitkas1412.ticketbooking.service.OrderService;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -27,13 +30,15 @@ public class OrderServiceImpl implements OrderService {
 
     private final EventRepository eventRepository;
     private final OrderRepository orderRepository;
+    private final OrderItemRepository orderItemRepository;
     private final TicketMapper ticketMapper;
     private final StringRedisTemplate redisTemplate;
     private final RabbitTemplate rabbitTemplate;
 
-    public OrderServiceImpl(EventRepository eventRepository, OrderRepository orderRepository, TicketMapper ticketMapper, StringRedisTemplate redisTemplate, RabbitTemplate rabbitTemplate) {
+    public OrderServiceImpl(EventRepository eventRepository, OrderRepository orderRepository, OrderItemRepository orderItemRepository, TicketMapper ticketMapper, StringRedisTemplate redisTemplate, RabbitTemplate rabbitTemplate) {
         this.eventRepository = eventRepository;
         this.orderRepository = orderRepository;
+        this.orderItemRepository = orderItemRepository;
         this.ticketMapper = ticketMapper;
         this.redisTemplate = redisTemplate;
         this.rabbitTemplate = rabbitTemplate;
@@ -76,6 +81,21 @@ public class OrderServiceImpl implements OrderService {
             redisTemplate.opsForValue().increment(key);
             throw e;
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Object getOrderStatus(UUID orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new OrderNotFoundException("Không tìm thấy Order!"));
+
+        if (order.getStatus() == Order.OrderStatus.CONFIRMED) {
+            OrderItem orderItem = orderItemRepository.findByOrder(order)
+                    .orElseThrow(() -> new IllegalStateException("Order CONFIRMED nhưng không có OrderItem: " + orderId));
+            return ticketMapper.toBuyTicketResponse(orderItem.getTicket(), order);
+        }
+
+        return ticketMapper.toBuyTicketAcceptedResponse(order);
     }
 
     private Event findEventByIdOrThrow(UUID eventId) {

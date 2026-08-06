@@ -10,7 +10,8 @@ The approach:
 
 - **Redis holds the source of truth for "tickets left"** during a sale. Every purchase attempt does an atomic `DECR` on a per-event counter — no database row-locking on the hot path.
 - **Idempotency keys** (also stored in Redis with a TTL) prevent duplicate purchases from retried/duplicate requests.
-- **PostgreSQL holds the durable state** (events, tickets, orders, order items), with optimistic locking (`@Version`) on `Event` and `Ticket`.
+- **Ticket reservation is asynchronous.** The API claims inventory in Redis, creates a `PENDING` order, and publishes a `ticket.buy.requested` message to RabbitMQ, returning `202 Accepted` immediately. A consumer processes the message, reserves the actual `Ticket` row, and confirms or fails the order — decoupling the hot path from database writes.
+- **PostgreSQL holds the durable state** (events, tickets, orders, order items), with optimistic locking (`@Version`) on `Event`, `Ticket`, and `Order`.
 - **A reconciliation job** periodically resyncs the Redis counters from the database (`AVAILABLE` ticket counts), and also runs once on startup, so Redis can never drift permanently out of sync with Postgres.
 - **An outbox table** (`OutboxEvent`) is in place for reliably publishing domain events (e.g. `OrderConfirmed`, `TicketSold`) to downstream consumers.
 
@@ -22,7 +23,7 @@ The approach:
 | Framework | Spring Boot 4 (Web MVC, Data JPA, Validation, Data Redis) |
 | Database | PostgreSQL |
 | Cache / Inventory counters | Redis |
-| Messaging (provisioned) | RabbitMQ |
+| Messaging | RabbitMQ (async ticket-purchase processing) |
 | Object mapping | MapStruct |
 | Boilerplate reduction | Lombok |
 | Build | Maven (wrapper included) |
@@ -41,27 +42,31 @@ The approach:
           │           │          │
           ├─────── Redis ────────┤          (ticket counters, idempotency keys)
           │                      │
-          └────── PostgreSQL ────┘          (events, tickets, orders, outbox)
-
-       RabbitMQ is provisioned alongside the stack for future
-       outbox-event publishing / async processing.
+          ├────── PostgreSQL ────┤          (events, tickets, orders, outbox)
+          │                      │
+          └─────── RabbitMQ ─────┘          (ticket.buy.requested queue)
+                       │
+                       ▼
+              TicketPurchaseConsumer          (reserves the Ticket, confirms/fails the Order)
 ```
 
 ### Domain model
 
 - **Event** — `name`, `description`, `totalTickets`, `saleStartAt`/`saleEndAt`, `status` (`DRAFT`, `ON_SALE`, `SOLD_OUT`, `CLOSED`).
 - **Ticket** — belongs to an `Event`, has a `seatCode`, `price`, `status` (`AVAILABLE`, `RESERVED`, `SOLD`, `CANCELED`).
-- **Order** — belongs to an `Event`, keyed by a unique `idempotencyKey`, `status` (`PENDING`, `CONFIRMED`, `CANCELLED`, `FAILED`).
+- **Order** — belongs to an `Event`, keyed by a unique `idempotencyKey`, `status` (`PENDING`, `CONFIRMED`, `CANCELLED`, `FAILED`), with optimistic locking (`@Version`).
 - **OrderItem** — links an `Order` to the `Ticket` that was reserved for it, with the price paid.
 - **OutboxEvent** — transactional outbox row (`aggregateType`, `aggregateId`, `eventType`, JSON `payload`) for reliable event publishing.
 
-### Purchase flow (`POST /api/events/{eventId}/buy`)
+### Purchase flow
 
-1. Atomically claim the idempotency key in Redis (`SETIFABSENT`, 5 min TTL). If it's already claimed, the request is treated as a duplicate and returns success with no body.
-2. Atomically `DECR` the event's available-ticket counter in Redis.
+1. `POST /api/events/{eventId}/buy` claims the idempotency key in Redis (`SETIFABSENT`, 5 min TTL). If it's already claimed, the request is treated as a duplicate and returns `200 OK` with no body.
+2. It atomically `DECR`s the event's available-ticket counter in Redis.
    - If the result is negative, the decrement is rolled back and the request fails with `404` (event not found) or `409` (sold out).
-3. On success, reserve a `Ticket` row, create the `Order` and `OrderItem` in Postgres within a transaction.
-4. If anything after the decrement fails, the Redis counter is incremented back to avoid permanently losing inventory.
+3. On success, a `PENDING` `Order` is created in Postgres and a `ticket.buy.requested` message (`eventId`, `orderId`) is published to RabbitMQ. The endpoint returns `202 Accepted` with the order's id and status — the ticket has **not** been reserved yet at this point.
+   - If publishing or the order insert fails, the Redis counter is incremented back to avoid permanently losing inventory.
+4. `TicketPurchaseConsumer` picks up the message asynchronously: it reserves a `Ticket` row and creates the `OrderItem`, then marks the `Order` `CONFIRMED`; if no ticket is actually available it marks the `Order` `FAILED` and increments the Redis counter back.
+5. Clients poll `GET /api/orders/{orderId}` to find out whether the order has settled to `CONFIRMED` (ticket assigned) or `FAILED`.
 
 ## API
 
@@ -76,7 +81,8 @@ On failure, `error` is populated with `{ "status", "title", "detail" }` and the 
 | Method | Path | Description |
 |---|---|---|
 | `POST` | `/api/events` | Create a new event |
-| `POST` | `/api/events/{eventId}/buy` | Buy one ticket for an event (idempotent) |
+| `POST` | `/api/events/{eventId}/buy` | Request one ticket for an event (idempotent, async — returns `202 Accepted`) |
+| `GET` | `/api/orders/{orderId}` | Get the current status/result of an order |
 
 **Create event**
 
@@ -94,7 +100,7 @@ Content-Type: application/json
 }
 ```
 
-**Buy ticket**
+**Buy ticket (async)**
 
 ```http
 POST /api/events/{eventId}/buy
@@ -104,6 +110,20 @@ Content-Type: application/json
   "idempotencyKey": "a-client-generated-unique-key"
 }
 ```
+
+Returns `202 Accepted` with the pending order:
+
+```json
+{ "success": true, "data": { "orderId": "...", "eventId": "...", "status": "PENDING" }, "error": null, "meta": null }
+```
+
+**Get order status**
+
+```http
+GET /api/orders/{orderId}
+```
+
+While the purchase is still being processed, `data.status` is `PENDING`. Once the consumer has processed the message, it returns either the confirmed ticket (`status: CONFIRMED`, plus `ticketId`, `seatCode`, `price`) or a failed order (`status: FAILED`).
 
 A ready-to-use request collection is available at [`postman/ticketbooking.postman_collection.json`](postman/ticketbooking.postman_collection.json).
 
@@ -181,6 +201,7 @@ src/main/java/me/kitkas1412/ticketbooking/
 ├── entity/        JPA entities
 ├── exception/     Domain exceptions + global exception handler
 ├── mapper/        MapStruct entity <-> DTO mappers
+├── rabbitmq/      Queue/exchange config, purchase message, async consumer
 ├── redis/         Redis inventory keys, reconciliation job, startup sync
 ├── repository/    Spring Data JPA repositories
 └── service/       Business logic (interfaces + impl)
