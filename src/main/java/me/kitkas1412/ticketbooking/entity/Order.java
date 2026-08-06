@@ -30,7 +30,7 @@ public class Order extends BaseEntity {
     @Column(name = "version", nullable = false)
     private Integer version;
 
-    private enum OrderStatus{
+    public enum OrderStatus{
         PENDING, CONFIRMED, CANCELLED, FAILED,
     }
 }

@@ -11,19 +11,23 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
+    public static final String TICKET_BUY_QUEUE = "ticket.buy.queue";
+    public static final String TICKET_EXCHANGE = "ticket.exchange";
+    public static final String TICKET_BUY_ROUTING_KEY = "ticket.buy.requested";
+
     @Bean
     public Queue ticketBuyQueue(){
-        return new Queue("ticket.buy.queue", true);
+        return new Queue(TICKET_BUY_QUEUE, true);
     }
 
     @Bean
     public DirectExchange ticketExchange(){
-        return new DirectExchange("ticket.exchange", true, false);
+        return new DirectExchange(TICKET_EXCHANGE, true, false);
     }
 
     @Bean
     public Binding ticketBuyBinding(Queue ticketBuyQueue, DirectExchange ticketExchange){
-        return BindingBuilder.bind(ticketBuyQueue).to(ticketExchange).with("ticket.buy.requested");
+        return BindingBuilder.bind(ticketBuyQueue).to(ticketExchange).with(TICKET_BUY_ROUTING_KEY);
     }
 
     @Bean

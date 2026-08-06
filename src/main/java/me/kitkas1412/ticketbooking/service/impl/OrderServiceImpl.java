@@ -1,19 +1,19 @@
 package me.kitkas1412.ticketbooking.service.impl;
 
 import me.kitkas1412.ticketbooking.dto.request.BuyTicketRequest;
-import me.kitkas1412.ticketbooking.dto.response.BuyTicketResponse;
+import me.kitkas1412.ticketbooking.dto.response.BuyTicketAcceptedResponse;
 import me.kitkas1412.ticketbooking.entity.Event;
 import me.kitkas1412.ticketbooking.entity.Order;
-import me.kitkas1412.ticketbooking.entity.Ticket;
 import me.kitkas1412.ticketbooking.exception.EventNotFoundException;
 import me.kitkas1412.ticketbooking.exception.NoTicketAvailableException;
 import me.kitkas1412.ticketbooking.mapper.TicketMapper;
+import me.kitkas1412.ticketbooking.rabbitmq.BuyTicketMessage;
+import me.kitkas1412.ticketbooking.rabbitmq.RabbitMQConfig;
 import me.kitkas1412.ticketbooking.redis.TicketInventoryKey;
 import me.kitkas1412.ticketbooking.repository.EventRepository;
 import me.kitkas1412.ticketbooking.repository.OrderRepository;
-import me.kitkas1412.ticketbooking.service.OrderItemService;
 import me.kitkas1412.ticketbooking.service.OrderService;
-import me.kitkas1412.ticketbooking.service.TicketService;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,23 +27,21 @@ public class OrderServiceImpl implements OrderService {
 
     private final EventRepository eventRepository;
     private final OrderRepository orderRepository;
-    private final TicketService ticketService;
-    private final OrderItemService orderItemService;
     private final TicketMapper ticketMapper;
     private final StringRedisTemplate redisTemplate;
+    private final RabbitTemplate rabbitTemplate;
 
-    public OrderServiceImpl(EventRepository eventRepository, OrderRepository orderRepository, TicketService ticketService, OrderItemService orderItemService, TicketMapper ticketMapper, StringRedisTemplate redisTemplate) {
+    public OrderServiceImpl(EventRepository eventRepository, OrderRepository orderRepository, TicketMapper ticketMapper, StringRedisTemplate redisTemplate, RabbitTemplate rabbitTemplate) {
         this.eventRepository = eventRepository;
         this.orderRepository = orderRepository;
-        this.ticketService = ticketService;
-        this.orderItemService = orderItemService;
         this.ticketMapper = ticketMapper;
         this.redisTemplate = redisTemplate;
+        this.rabbitTemplate = rabbitTemplate;
     }
 
     @Override
     @Transactional
-    public Optional<BuyTicketResponse> buyTicket(BuyTicketRequest request, UUID eventId) {
+    public Optional<BuyTicketAcceptedResponse> buyTicket(BuyTicketRequest request, UUID eventId) {
         String key = TicketInventoryKey.availableTickets(eventId);
         String idempotencyKey = TicketInventoryKey.idempotencyKey(request.idempotencyKey());
 
@@ -62,16 +60,18 @@ public class OrderServiceImpl implements OrderService {
 
         try {
             Event event = findEventByIdOrThrow(eventId);
-            Ticket ticket = ticketService.reserveTicket(event);
 
             Order order = orderRepository.save(Order.builder()
                     .idempotencyKey(request.idempotencyKey())
                     .event(event)
                     .build());
 
-            orderItemService.createOrderItem(order, ticket, ticket.getPrice());
+            rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.TICKET_EXCHANGE,
+                    RabbitMQConfig.TICKET_BUY_ROUTING_KEY,
+                    new BuyTicketMessage(eventId, order.getId()));
 
-            return Optional.of(ticketMapper.toBuyTicketResponse(ticket, order));
+            return Optional.of(ticketMapper.toBuyTicketAcceptedResponse(order));
         } catch (RuntimeException e){
             redisTemplate.opsForValue().increment(key);
             throw e;

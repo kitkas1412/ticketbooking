@@ -1,5 +1,6 @@
 package me.kitkas1412.ticketbooking.mapper;
 
+import me.kitkas1412.ticketbooking.dto.response.BuyTicketAcceptedResponse;
 import me.kitkas1412.ticketbooking.dto.response.BuyTicketResponse;
 import me.kitkas1412.ticketbooking.entity.Order;
 import me.kitkas1412.ticketbooking.entity.Ticket;
@@ -16,4 +17,9 @@ public interface TicketMapper {
     @Mapping(target = "orderId", source = "order.id")
     @Mapping(target = "price", source = "ticket.price")
     BuyTicketResponse toBuyTicketResponse(Ticket ticket, Order order);
+
+    @Mapping(target = "orderId", source = "id")
+    @Mapping(target = "eventId", source = "event.id")
+    @Mapping(target = "status", source = "status")
+    BuyTicketAcceptedResponse toBuyTicketAcceptedResponse(Order order);
 }
