@@ -15,6 +15,8 @@ public class RabbitMQConfig {
     public static final String TICKET_EXCHANGE = "ticket.exchange";
     public static final String TICKET_BUY_ROUTING_KEY = "ticket.buy.requested";
 
+    public static final String TICKET_BUY_REQUESTED_EVENT = "TicketBuyRequested";
+
     @Bean
     public Queue ticketBuyQueue(){
         return new Queue(TICKET_BUY_QUEUE, true);

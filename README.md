@@ -10,10 +10,10 @@ The approach:
 
 - **Redis holds the source of truth for "tickets left"** during a sale. Every purchase attempt does an atomic `DECR` on a per-event counter — no database row-locking on the hot path.
 - **Idempotency keys** (also stored in Redis with a TTL) prevent duplicate purchases from retried/duplicate requests.
-- **Ticket reservation is asynchronous.** The API claims inventory in Redis, creates a `PENDING` order, and publishes a `ticket.buy.requested` message to RabbitMQ, returning `202 Accepted` immediately. A consumer processes the message, reserves the actual `Ticket` row, and confirms or fails the order — decoupling the hot path from database writes.
+- **Ticket reservation is asynchronous.** The API claims inventory in Redis, creates a `PENDING` order, and records a `ticket.buy.requested` domain event, returning `202 Accepted` immediately. A consumer processes the event, reserves the actual `Ticket` row, and confirms or fails the order — decoupling the hot path from database writes.
 - **PostgreSQL holds the durable state** (events, tickets, orders, order items), with optimistic locking (`@Version`) on `Event`, `Ticket`, and `Order`.
 - **A reconciliation job** periodically resyncs the Redis counters from the database (`AVAILABLE` ticket counts), and also runs once on startup, so Redis can never drift permanently out of sync with Postgres.
-- **An outbox table** (`OutboxEvent`) is in place for reliably publishing domain events (e.g. `OrderConfirmed`, `TicketSold`) to downstream consumers.
+- **A transactional outbox** (`OutboxEvent`) makes publishing reliable: instead of calling RabbitMQ directly from the request thread, the API writes the event to the `outbox_events` table in the same DB transaction as the `Order`. A background poller (`OutboxEventPublisher`) picks up unpublished rows every 2s and publishes them to RabbitMQ, retrying automatically if a publish attempt fails — so a `PENDING` order can never get created without its purchase event eventually reaching the consumer.
 
 ## Tech Stack
 
@@ -42,9 +42,11 @@ The approach:
           │           │          │
           ├─────── Redis ────────┤          (ticket counters, idempotency keys)
           │                      │
-          ├────── PostgreSQL ────┤          (events, tickets, orders, outbox)
-          │                      │
-          └─────── RabbitMQ ─────┘          (ticket.buy.requested queue)
+          └────── PostgreSQL ────┘          (events, tickets, orders, outbox_events)
+                       │
+                       │  OutboxEventPublisher polls outbox_events every 2s
+                       ▼
+                  RabbitMQ                   (ticket.buy.requested queue)
                        │
                        ▼
               TicketPurchaseConsumer          (reserves the Ticket, confirms/fails the Order)
@@ -56,17 +58,18 @@ The approach:
 - **Ticket** — belongs to an `Event`, has a `seatCode`, `price`, `status` (`AVAILABLE`, `RESERVED`, `SOLD`, `CANCELED`).
 - **Order** — belongs to an `Event`, keyed by a unique `idempotencyKey`, `status` (`PENDING`, `CONFIRMED`, `CANCELLED`, `FAILED`), with optimistic locking (`@Version`).
 - **OrderItem** — links an `Order` to the `Ticket` that was reserved for it, with the price paid.
-- **OutboxEvent** — transactional outbox row (`aggregateType`, `aggregateId`, `eventType`, JSON `payload`) for reliable event publishing.
+- **OutboxEvent** — transactional outbox row (`aggregateType`, `aggregateId`, `eventType`, JSON `payload`, `publishedAt`) written alongside the `Order` and later relayed to RabbitMQ by `OutboxEventPublisher`.
 
 ### Purchase flow
 
 1. `POST /api/events/{eventId}/buy` claims the idempotency key in Redis (`SETIFABSENT`, 5 min TTL). If it's already claimed, the request is treated as a duplicate and returns `200 OK` with no body.
 2. It atomically `DECR`s the event's available-ticket counter in Redis.
    - If the result is negative, the decrement is rolled back and the request fails with `404` (event not found) or `409` (sold out).
-3. On success, a `PENDING` `Order` is created in Postgres and a `ticket.buy.requested` message (`eventId`, `orderId`) is published to RabbitMQ. The endpoint returns `202 Accepted` with the order's id and status — the ticket has **not** been reserved yet at this point.
-   - If publishing or the order insert fails, the Redis counter is incremented back to avoid permanently losing inventory.
-4. `TicketPurchaseConsumer` picks up the message asynchronously: it reserves a `Ticket` row and creates the `OrderItem`, then marks the `Order` `CONFIRMED`; if no ticket is actually available it marks the `Order` `FAILED` and increments the Redis counter back.
-5. Clients poll `GET /api/orders/{orderId}` to find out whether the order has settled to `CONFIRMED` (ticket assigned) or `FAILED`.
+3. On success, a `PENDING` `Order` and an `OutboxEvent` (`eventType: TicketBuyRequested`, payload `{eventId, orderId}`) are written to Postgres in the same transaction. The endpoint returns `202 Accepted` with the order's id and status — the ticket has **not** been reserved yet at this point.
+   - If the order/outbox insert fails, the Redis counter is incremented back to avoid permanently losing inventory.
+4. `OutboxEventPublisher` polls `outbox_events` for unpublished rows every 2s and publishes each one to RabbitMQ (`ticket.buy.requested` routing key), marking it published on success. A failed publish attempt is simply retried on the next poll — the row stays unpublished.
+5. `TicketPurchaseConsumer` picks up the message asynchronously: it reserves a `Ticket` row and creates the `OrderItem`, then marks the `Order` `CONFIRMED`; if no ticket is actually available it marks the `Order` `FAILED` and increments the Redis counter back.
+6. Clients poll `GET /api/orders/{orderId}` to find out whether the order has settled to `CONFIRMED` (ticket assigned) or `FAILED`.
 
 ## API
 
@@ -201,7 +204,7 @@ src/main/java/me/kitkas1412/ticketbooking/
 ├── entity/        JPA entities
 ├── exception/     Domain exceptions + global exception handler
 ├── mapper/        MapStruct entity <-> DTO mappers
-├── rabbitmq/      Queue/exchange config, purchase message, async consumer
+├── rabbitmq/      Queue/exchange config, purchase message, async consumer, outbox publisher
 ├── redis/         Redis inventory keys, reconciliation job, startup sync
 ├── repository/    Spring Data JPA repositories
 └── service/       Business logic (interfaces + impl)

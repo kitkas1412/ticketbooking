@@ -5,6 +5,7 @@ import me.kitkas1412.ticketbooking.dto.response.BuyTicketAcceptedResponse;
 import me.kitkas1412.ticketbooking.entity.Event;
 import me.kitkas1412.ticketbooking.entity.Order;
 import me.kitkas1412.ticketbooking.entity.OrderItem;
+import me.kitkas1412.ticketbooking.entity.OutboxEvent;
 import me.kitkas1412.ticketbooking.exception.EventNotFoundException;
 import me.kitkas1412.ticketbooking.exception.NoTicketAvailableException;
 import me.kitkas1412.ticketbooking.exception.OrderNotFoundException;
@@ -15,11 +16,12 @@ import me.kitkas1412.ticketbooking.redis.TicketInventoryKey;
 import me.kitkas1412.ticketbooking.repository.EventRepository;
 import me.kitkas1412.ticketbooking.repository.OrderItemRepository;
 import me.kitkas1412.ticketbooking.repository.OrderRepository;
+import me.kitkas1412.ticketbooking.repository.OutboxEventRepository;
 import me.kitkas1412.ticketbooking.service.OrderService;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -31,17 +33,19 @@ public class OrderServiceImpl implements OrderService {
     private final EventRepository eventRepository;
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
+    private final OutboxEventRepository outboxEventRepository;
     private final TicketMapper ticketMapper;
     private final StringRedisTemplate redisTemplate;
-    private final RabbitTemplate rabbitTemplate;
+    private final ObjectMapper objectMapper;
 
-    public OrderServiceImpl(EventRepository eventRepository, OrderRepository orderRepository, OrderItemRepository orderItemRepository, TicketMapper ticketMapper, StringRedisTemplate redisTemplate, RabbitTemplate rabbitTemplate) {
+    public OrderServiceImpl(EventRepository eventRepository, OrderRepository orderRepository, OrderItemRepository orderItemRepository, OutboxEventRepository outboxEventRepository, TicketMapper ticketMapper, StringRedisTemplate redisTemplate, ObjectMapper objectMapper) {
         this.eventRepository = eventRepository;
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
+        this.outboxEventRepository = outboxEventRepository;
         this.ticketMapper = ticketMapper;
         this.redisTemplate = redisTemplate;
-        this.rabbitTemplate = rabbitTemplate;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -71,10 +75,12 @@ public class OrderServiceImpl implements OrderService {
                     .event(event)
                     .build());
 
-            rabbitTemplate.convertAndSend(
-                    RabbitMQConfig.TICKET_EXCHANGE,
-                    RabbitMQConfig.TICKET_BUY_ROUTING_KEY,
-                    new BuyTicketMessage(eventId, order.getId()));
+            outboxEventRepository.save(OutboxEvent.builder()
+                    .aggregateType("ORDER")
+                    .aggregateId(order.getId())
+                    .eventType(RabbitMQConfig.TICKET_BUY_REQUESTED_EVENT)
+                    .payload(objectMapper.writeValueAsString(new BuyTicketMessage(eventId, order.getId())))
+                    .build());
 
             return Optional.of(ticketMapper.toBuyTicketAcceptedResponse(order));
         } catch (RuntimeException e){
