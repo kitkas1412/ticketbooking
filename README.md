@@ -73,6 +73,20 @@ The approach:
 
 ## API
 
+Interactive docs (Swagger UI) are served by the app itself:
+
+| Resource | Local (`mvn spring-boot:run`) | Docker Compose (behind Nginx) |
+|---|---|---|
+| Swagger UI | http://localhost:8080/swagger-ui.html | http://localhost/swagger-ui.html |
+| OpenAPI 3 spec (JSON) | http://localhost:8080/v3/api-docs | http://localhost/v3/api-docs |
+
+To call the authenticated endpoints from the UI: `POST /api/auth/login`, copy `data.accessToken`
+from the response, then click **Authorize** and paste it in (no `Bearer ` prefix needed).
+
+Both paths are `permitAll()` in `SecurityConfig`. If you deploy this publicly, turn them off with
+`springdoc.api-docs.enabled=false` / `springdoc.swagger-ui.enabled=false`, or restrict the matchers
+to `hasRole("ADMIN")`.
+
 Base path: `/api/events`. All responses are wrapped in a common envelope:
 
 ```json
@@ -199,6 +213,7 @@ Database schema is managed via `hibernate.ddl-auto: update` for development conv
 
 ```
 src/main/java/me/kitkas1412/ticketbooking/
+├── config/        Security, OpenAPI/Swagger, Hibernate JSON config
 ├── controller/    REST controllers
 ├── dto/           Request/response records
 ├── entity/        JPA entities

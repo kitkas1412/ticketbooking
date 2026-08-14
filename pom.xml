@@ -29,6 +29,7 @@
     <properties>
         <java.version>21</java.version>
         <jjwt.version>0.12.6</jjwt.version>
+        <springdoc.version>3.1.0</springdoc.version>
     </properties>
     <dependencies>
         <dependency>
@@ -106,6 +107,14 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security-test</artifactId>
             <scope>test</scope>
+        </dependency>
+
+        <!-- Swagger UI + OpenAPI 3. Nhánh 3.x là nhánh tương thích Spring Boot 4;
+             springdoc 2.x chỉ chạy với Spring Boot 3. -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
         </dependency>
 
         <!-- Source: https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt-api -->

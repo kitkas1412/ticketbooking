@@ -89,6 +89,19 @@ public class SecurityConfig {
                         // đường nào lấy được token đầu tiên.
                         .requestMatchers("/api/auth/**").permitAll()
 
+                        // Swagger UI + JSON đặc tả OpenAPI. Trang /swagger-ui.html
+                        // chỉ redirect sang /swagger-ui/index.html nên phải mở cả hai;
+                        // thiếu /v3/api-docs/** thì UI load được nhưng trắng trang.
+                        // Lưu ý: mở công khai đồng nghĩa với công khai toàn bộ danh
+                        // sách endpoint. Ở production nên đóng lại bằng
+                        // springdoc.api-docs.enabled=false / springdoc.swagger-ui.enabled=false,
+                        // hoặc đổi permitAll() thành hasRole(ADMIN).
+                        .requestMatchers(
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs",
+                                "/v3/api-docs/**").permitAll()
+
                         // Xem danh sách / chi tiết event là công khai.
                         .requestMatchers(HttpMethod.GET, "/api/events/**").permitAll()
 

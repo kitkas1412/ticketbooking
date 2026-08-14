@@ -29,6 +29,21 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: 6379
 
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    # Sắp xếp cố định thay vì theo thứ tự Spring quét được — thứ tự quét không
+    # ổn định giữa các lần chạy, khiến trang docs "nhảy" vô cớ.
+    tags-sorter: alpha
+    operations-sorter: method
+    # Ẩn khối "Models" ở cuối trang; schema vẫn xem được khi bung từng response.
+    default-models-expand-depth: -1
+  # Chỉ sinh docs cho controller của ứng dụng, bỏ qua các endpoint do starter
+  # khác đăng ký (error controller, actuator...).
+  paths-to-match: /api/**
+
 app:
   jwt:
     # Base64 của khoá HMAC, tối thiểu 256 bit. Cố ý không đặt giá trị mặc định
