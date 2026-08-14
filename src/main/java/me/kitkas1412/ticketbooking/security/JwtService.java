@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
@@ -43,6 +44,11 @@ public class JwtService {
         // Ném WeakKeyException ngay lúc tạo bean nếu khoá ngắn hơn 256 bit,
         // thay vì để lộ ra khi user đầu tiên đăng nhập.
         this.signingKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(properties.secret()));
+    }
+
+    /** Dùng để trả về {@code expiresIn} cho client, tránh hardcode ở hai nơi. */
+    public Duration getAccessTokenTtl() {
+        return properties.accessTokenTtl();
     }
 
     public String generateAccessToken(CustomUserDetails user) {
