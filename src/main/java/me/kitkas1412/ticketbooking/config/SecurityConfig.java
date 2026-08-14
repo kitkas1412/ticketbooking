@@ -1,5 +1,7 @@
 package me.kitkas1412.ticketbooking.config;
 
+import me.kitkas1412.ticketbooking.security.JwtProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
@@ -10,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
  * {@code SecurityFilterChain} sẽ được thêm ở bước sau.
  */
 @Configuration
+@EnableConfigurationProperties(JwtProperties.class)
 public class SecurityConfig {
 
     /**

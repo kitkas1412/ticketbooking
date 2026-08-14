@@ -28,3 +28,13 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: 6379
+
+app:
+  jwt:
+    # Base64 của khoá HMAC, tối thiểu 256 bit. Cố ý không đặt giá trị mặc định
+    # để app chết ngay lúc khởi động nếu môi trường triển khai quên set biến,
+    # thay vì chạy với một secret đã nằm trong git.
+    # Sinh khoá mới: openssl rand -base64 64
+    secret: ${JWT_SECRET}
+    issuer: ticketbooking
+    access-token-ttl: 15m
