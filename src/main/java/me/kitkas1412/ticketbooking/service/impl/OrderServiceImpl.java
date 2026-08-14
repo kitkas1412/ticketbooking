@@ -21,6 +21,8 @@ import me.kitkas1412.ticketbooking.service.OrderService;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.Duration;
@@ -67,26 +69,49 @@ public class OrderServiceImpl implements OrderService {
             throw new NoTicketAvailableException("Hết vé!");
         }
 
-        try {
-            Event event = findEventByIdOrThrow(eventId);
+        // Inventory is now claimed in Redis but nothing is durable yet. Hand the
+        // compensation to the transaction manager instead of a try/catch: this
+        // method is @Transactional, so the flush and commit happen *after* it
+        // returns and a failure there would never reach a catch block here --
+        // leaking the claimed ticket until the reconciler happens to run.
+        registerInventoryCompensation(key, idempotencyKey);
 
-            Order order = orderRepository.save(Order.builder()
-                    .idempotencyKey(request.idempotencyKey())
-                    .event(event)
-                    .build());
+        Event event = findEventByIdOrThrow(eventId);
 
-            outboxEventRepository.save(OutboxEvent.builder()
-                    .aggregateType("ORDER")
-                    .aggregateId(order.getId())
-                    .eventType(RabbitMQConfig.TICKET_BUY_REQUESTED_EVENT)
-                    .payload(objectMapper.writeValueAsString(new BuyTicketMessage(eventId, order.getId())))
-                    .build());
+        Order order = orderRepository.save(Order.builder()
+                .idempotencyKey(request.idempotencyKey())
+                .event(event)
+                .build());
 
-            return Optional.of(ticketMapper.toBuyTicketAcceptedResponse(order));
-        } catch (RuntimeException e){
-            redisTemplate.opsForValue().increment(key);
-            throw e;
-        }
+        outboxEventRepository.save(OutboxEvent.builder()
+                .aggregateType("ORDER")
+                .aggregateId(order.getId())
+                .eventType(RabbitMQConfig.TICKET_BUY_REQUESTED_EVENT)
+                .payload(objectMapper.writeValueAsString(new BuyTicketMessage(eventId, order.getId())))
+                .build());
+
+        return Optional.of(ticketMapper.toBuyTicketAcceptedResponse(order));
+    }
+
+    /**
+     * Gives back the Redis ticket claim if the surrounding transaction does not
+     * commit, whether it failed inside the method body or during commit itself.
+     *
+     * <p>The idempotency key is released alongside it: the key is claimed before
+     * any durable write, so leaving it behind after a rollback would make the
+     * client's retry look like a duplicate and silently drop the purchase.
+     */
+    private void registerInventoryCompensation(String inventoryKey, String idempotencyKey) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                if (status == STATUS_COMMITTED) {
+                    return;
+                }
+                redisTemplate.opsForValue().increment(inventoryKey);
+                redisTemplate.delete(idempotencyKey);
+            }
+        });
     }
 
     @Override
