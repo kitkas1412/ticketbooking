@@ -4,6 +4,7 @@ import me.kitkas1412.ticketbooking.dto.response.ApiResponse;
 import me.kitkas1412.ticketbooking.dto.response.ErrorDetail;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.AuthenticationException;
@@ -81,6 +82,26 @@ public class GlobalExceptionHandler {
                 "Email hoặc mật khẩu không đúng"
         );
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error(error));
+    }
+
+    /**
+     * Đã xác thực nhưng không đủ quyền, ném từ trong controller — tức là bởi
+     * method security ({@code @PreAuthorize}).
+     *
+     * <p>Cần handler riêng vì handler bắt {@code Exception} bên dưới sẽ nuốt mất
+     * và trả 500. Lỗi phân quyền theo URL không đi qua đây: nó bị
+     * {@code ExceptionTranslationFilter} chặn ngay trong filter chain và chuyển
+     * cho {@code RestAuthErrorHandler}, nên hai đường phải cho ra cùng một
+     * response 403.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
+        ErrorDetail error = new ErrorDetail(
+                HttpStatus.FORBIDDEN.value(),
+                HttpStatus.FORBIDDEN.getReasonPhrase(),
+                "Bạn không có quyền truy cập tài nguyên này"
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error(error));
     }
 
     /** Body không qua được @Valid — trả 400 kèm lỗi từng field. */

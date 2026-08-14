@@ -1,6 +1,7 @@
 package me.kitkas1412.ticketbooking.security;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -44,6 +45,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String AUTH_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
+
+    /** Khoá request attribute mang lý do token bị từ chối, đọc bởi {@link RestAuthErrorHandler}. */
+    public static final String TOKEN_ERROR_ATTRIBUTE = "jwt.error";
+    public static final String TOKEN_EXPIRED = "expired";
+    public static final String TOKEN_INVALID = "invalid";
 
     private final JwtService jwtService;
 
@@ -94,6 +100,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // ẩn danh. Cố ý KHÔNG tự ghi 401 ở đây — để AuthenticationEntryPoint
             // dựng response lỗi thống nhất cho cả trường hợp không gửi token.
             SecurityContextHolder.clearContext();
+
+            // Ghi lại lý do để entry point phân biệt "hết hạn" (client nên đăng
+            // nhập lại) với "không hợp lệ" (client đang gửi rác). Truyền qua
+            // request attribute vì entry point chạy ở cuối chain, không thấy
+            // được exception này.
+            request.setAttribute(TOKEN_ERROR_ATTRIBUTE,
+                    e instanceof ExpiredJwtException ? TOKEN_EXPIRED : TOKEN_INVALID);
+
             log.debug("Bỏ qua JWT không hợp lệ trên {} {}: {}",
                     request.getMethod(), request.getRequestURI(), e.getMessage());
         }

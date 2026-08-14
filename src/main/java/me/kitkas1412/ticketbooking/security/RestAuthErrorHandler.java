@@ -36,11 +36,33 @@ public class RestAuthErrorHandler implements AuthenticationEntryPoint, AccessDen
         this.objectMapper = objectMapper;
     }
 
-    /** Chưa xác thực: thiếu token, token hỏng hoặc hết hạn. */
+    /**
+     * Chưa xác thực: thiếu token, token hỏng hoặc hết hạn.
+     *
+     * <p>Tách riêng trường hợp hết hạn — kèm header {@code X-Token-Expired} —
+     * để client biết nên đăng nhập lại thay vì hiển thị lỗi cho người dùng.
+     * Việc token đã hết hạn không phải thông tin nhạy cảm: ai giữ token cũng tự
+     * đọc được trường {@code exp} trong đó.
+     */
     @Override
     public void commence(HttpServletRequest request,
                          HttpServletResponse response,
                          AuthenticationException authException) throws IOException {
+
+        Object reason = request.getAttribute(JwtAuthenticationFilter.TOKEN_ERROR_ATTRIBUTE);
+
+        if (JwtAuthenticationFilter.TOKEN_EXPIRED.equals(reason)) {
+            response.setHeader("X-Token-Expired", "true");
+            write(response, HttpStatus.UNAUTHORIZED,
+                    "Access token đã hết hạn, vui lòng đăng nhập lại");
+            return;
+        }
+
+        if (JwtAuthenticationFilter.TOKEN_INVALID.equals(reason)) {
+            write(response, HttpStatus.UNAUTHORIZED, "Access token không hợp lệ");
+            return;
+        }
+
         write(response, HttpStatus.UNAUTHORIZED,
                 "Yêu cầu cần access token hợp lệ trong header Authorization: Bearer <token>");
     }
