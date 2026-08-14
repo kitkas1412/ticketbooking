@@ -2,9 +2,11 @@ package me.kitkas1412.ticketbooking.controller;
 
 import jakarta.validation.Valid;
 import me.kitkas1412.ticketbooking.dto.request.LoginRequest;
+import me.kitkas1412.ticketbooking.dto.request.RegisterRequest;
 import me.kitkas1412.ticketbooking.dto.response.ApiResponse;
 import me.kitkas1412.ticketbooking.dto.response.LoginResponse;
 import me.kitkas1412.ticketbooking.service.AuthService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,6 +21,12 @@ public class AuthController {
 
     public AuthController(AuthService authService) {
         this.authService = authService;
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<ApiResponse<LoginResponse>> register(@Valid @RequestBody RegisterRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(authService.register(request)));
     }
 
     @PostMapping("/login")
