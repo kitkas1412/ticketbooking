@@ -57,6 +57,22 @@ public final class CustomUserDetails implements UserDetails {
         );
     }
 
+    /**
+     * Dựng principal từ claims của JWT, không truy DB.
+     *
+     * <p>{@code password} để null — không có bước so khớp mật khẩu nào trên
+     * đường request mang token. Hai cờ trạng thái để {@code true} vì token
+     * không mang thông tin đó: xem javadoc {@code JwtAuthenticationFilter} về
+     * hệ quả với việc khoá tài khoản.
+     */
+    public static CustomUserDetails fromClaims(UUID id, String email, Collection<String> roles) {
+        Set<GrantedAuthority> authorities = roles.stream()
+                .map(SimpleGrantedAuthority::new)
+                .collect(Collectors.toUnmodifiableSet());
+
+        return new CustomUserDetails(id, email, null, authorities, true, true);
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return authorities;
