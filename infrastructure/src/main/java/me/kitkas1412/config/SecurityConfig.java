@@ -1,17 +1,17 @@
 package me.kitkas1412.config;
 
-import me.kitkas1412.security.JwtProperties;
-import me.kitkas1412.security.RestAuthErrorHandler;
-import me.kitkas1412.security.JwtAuthenticationFilter;
-import me.kitkas1412.security.JwtService;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import jakarta.servlet.Filter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
@@ -19,10 +19,28 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.List;
 
 @Configuration
-@EnableConfigurationProperties(JwtProperties.class)
+@EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
+
+
+
+    @Value("${app.security.cors.allowed-origins:http://localhost:3000,http://localhost:5173}")
+    private String allowedOriginsRaw;
+
+    @Value("${app.security.swagger.public:true}")
+    private boolean swaggerPublic;
+
+    @Value("${app.security.cors.allow-all:false}")
+    private boolean corsAllowAll;
 
     /**
      * Dùng {@code DelegatingPasswordEncoder}: hash lưu xuống DB mang tiền tố
@@ -52,21 +70,18 @@ public class SecurityConfig {
      * encoder nào.
      */
     @Bean
-    public AuthenticationManager authenticationManager(UserDetailsService userDetailsService,
-                                                       PasswordEncoder passwordEncoder) {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
-        provider.setPasswordEncoder(passwordEncoder);
-        return new ProviderManager(provider);
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) {
+        return configuration.getAuthenticationManager();
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
-                                                   JwtService jwtService,
-                                                   RestAuthErrorHandler authErrorHandler) throws Exception {
+                                                   Filter jwtAuthenticationFilter) throws Exception {
         return http
                 // API stateless dùng Bearer token: không có cookie phiên nên
                 // không tồn tại vector CSRF mà token CSRF sinh ra để chặn.
                 .csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
                 // Tắt hai cơ chế mặc định của Spring Boot. Không tắt thì lỗi 401
                 // sẽ trả về redirect tới trang login hoặc header WWW-Authenticate,
@@ -80,8 +95,20 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint(authErrorHandler)
-                        .accessDeniedHandler(authErrorHandler))
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setContentType("application/json;charset=UTF-8");
+                            response.setStatus(401);
+                            response.getWriter().write(
+                                    "{\"success\":false,\"code\":\"UNAUTHORIZED\",\"message\":\"Vui lòng đăng nhập để tiếp tục\"}"
+                            );
+                        })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            response.setContentType("application/json;charset=UTF-8");
+                            response.setStatus(403);
+                            response.getWriter().write(
+                                    "{\"success\":false,\"code\":\"FORBIDDEN\",\"message\":\"Bạn không có quyền truy cập tài nguyên này\"}"
+                            );
+                        }))
 
                 .authorizeHttpRequests(auth -> auth
                         // Đăng ký / đăng nhập phải mở, nếu không sẽ không có
@@ -117,9 +144,37 @@ public class SecurityConfig {
                 // Cố ý new trực tiếp thay vì khai báo @Bean: Spring Boot tự đăng
                 // ký mọi bean kiểu Filter vào servlet filter chain, khiến filter
                 // chạy thêm một lần nữa ở ngoài chuỗi của Spring Security.
-                .addFilterBefore(new JwtAuthenticationFilter(jwtService),
+                .addFilterBefore(jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class)
 
                 .build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        if (corsAllowAll) {
+            // Dev/local only: allow any origin.
+            // Must use allowedOriginPatterns (not allowedOrigins) to be compatible with allowCredentials=true.
+            configuration.setAllowedOriginPatterns(List.of("*"));
+        } else {
+            // Prod/staging: explicit whitelist only.
+            List<String> origins = Arrays.stream(allowedOriginsRaw.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .toList();
+            configuration.setAllowedOrigins(origins);
+        }
+
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With", "Accept"));
+        configuration.setExposedHeaders(Arrays.asList("X-Token-Expired", "Authorization"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 }

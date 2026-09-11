@@ -1,6 +1,6 @@
 package me.kitkas1412.user.service.impl;
 
-import me.kitkas1412.security.JwtService;
+import me.kitkas1412.user.security.JwtService;
 import me.kitkas1412.user.dto.request.LoginRequest;
 import me.kitkas1412.user.dto.request.RegisterRequest;
 import me.kitkas1412.user.dto.response.LoginResponse;

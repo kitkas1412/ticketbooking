@@ -1,4 +1,4 @@
-package me.kitkas1412.security;
+package me.kitkas1412.user.security;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
