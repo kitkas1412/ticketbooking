@@ -1,6 +1,6 @@
 services:
   app1:
-    build: .
+    build: ..
     depends_on:
       - postgres
       - redis
@@ -17,7 +17,7 @@ services:
       RABBITMQ_PASS: ${RABBITMQ_DEFAULT_PASS}
 
   app2:
-    build: .
+    build: ..
     depends_on:
       - postgres
       - redis
@@ -34,7 +34,7 @@ services:
       RABBITMQ_PASS: ${RABBITMQ_DEFAULT_PASS}
 
   app3:
-    build: .
+    build: ..
     depends_on:
       - postgres
       - redis
