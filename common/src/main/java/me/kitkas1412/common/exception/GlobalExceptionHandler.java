@@ -4,6 +4,10 @@ import me.kitkas1412.common.response.ApiResponse;
 import me.kitkas1412.common.response.ErrorDetail;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -25,16 +29,6 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(NoTicketAvailableException.class)
     public ResponseEntity<ApiResponse<Void>> handleNoTicketAvailable(NoTicketAvailableException ex) {
-        ErrorDetail error = new ErrorDetail(
-                HttpStatus.CONFLICT.value(),
-                HttpStatus.CONFLICT.getReasonPhrase(),
-                ex.getMessage()
-        );
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error(error));
-    }
-
-    @ExceptionHandler(EmailAlreadyExistsException.class)
-    public ResponseEntity<ApiResponse<Void>> handleEmailAlreadyExists(EmailAlreadyExistsException ex) {
         ErrorDetail error = new ErrorDetail(
                 HttpStatus.CONFLICT.value(),
                 HttpStatus.CONFLICT.getReasonPhrase(),
