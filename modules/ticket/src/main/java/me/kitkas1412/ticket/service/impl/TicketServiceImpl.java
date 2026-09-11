@@ -1,10 +1,10 @@
 package me.kitkas1412.ticket.service.impl;
 
-import me.kitkas1412.ticketbooking.entity.Event;
-import me.kitkas1412.ticketbooking.entity.Ticket;
-import me.kitkas1412.ticketbooking.exception.NoTicketAvailableException;
-import me.kitkas1412.ticketbooking.repository.TicketRepository;
-import me.kitkas1412.ticketbooking.service.TicketService;
+import me.kitkas1412.event.entity.Event;
+import me.kitkas1412.ticket.entity.Ticket;
+import me.kitkas1412.ticket.exception.NoTicketAvailableException;
+import me.kitkas1412.ticket.repository.TicketRepository;
+import me.kitkas1412.ticket.service.TicketService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

@@ -1,7 +1,7 @@
 package me.kitkas1412.event.mapper;
 
-import me.kitkas1412.ticketbooking.dto.response.EventResponse;
-import me.kitkas1412.ticketbooking.entity.Event;
+import me.kitkas1412.event.dto.response.EventResponse;
+import me.kitkas1412.event.entity.Event;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 

@@ -1,9 +1,9 @@
 package me.kitkas1412.ticket.mapper;
 
-import me.kitkas1412.ticketbooking.dto.response.BuyTicketAcceptedResponse;
-import me.kitkas1412.ticketbooking.dto.response.BuyTicketResponse;
-import me.kitkas1412.ticketbooking.entity.Order;
-import me.kitkas1412.ticketbooking.entity.Ticket;
+import me.kitkas1412.order.entity.Order;
+import me.kitkas1412.ticket.dto.response.BuyTicketAcceptedResponse;
+import me.kitkas1412.ticket.dto.response.BuyTicketResponse;
+import me.kitkas1412.ticket.entity.Ticket;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 

@@ -1,7 +1,7 @@
 package me.kitkas1412.ticket.repository;
 
-import me.kitkas1412.ticketbooking.entity.Event;
-import me.kitkas1412.ticketbooking.entity.Ticket;
+import me.kitkas1412.event.entity.Event;
+import me.kitkas1412.ticket.entity.Ticket;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

@@ -1,10 +1,9 @@
 package me.kitkas1412.config;
 
-import me.kitkas1412.ticketbooking.entity.Role;
-import me.kitkas1412.ticketbooking.security.JwtAuthenticationFilter;
-import me.kitkas1412.ticketbooking.security.JwtProperties;
-import me.kitkas1412.ticketbooking.security.JwtService;
-import me.kitkas1412.ticketbooking.security.RestAuthErrorHandler;
+import me.kitkas1412.security.JwtProperties;
+import me.kitkas1412.security.RestAuthErrorHandler;
+import me.kitkas1412.security.JwtAuthenticationFilter;
+import me.kitkas1412.security.JwtService;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -107,7 +106,7 @@ public class SecurityConfig {
 
                         // Tạo event: chỉ ADMIN. hasRole("ADMIN") so khớp với
                         // authority "ROLE_ADMIN" do Role.getAuthority() sinh ra.
-                        .requestMatchers(HttpMethod.POST, "/api/events").hasRole(Role.ADMIN.name())
+                        .requestMatchers(HttpMethod.POST, "/api/events").hasRole("ADMIN")
 
                         // Mua vé và tra cứu order: cần đăng nhập.
                         .requestMatchers(HttpMethod.POST, "/api/events/*/buy").authenticated()

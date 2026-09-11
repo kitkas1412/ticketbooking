@@ -1,8 +1,8 @@
 package me.kitkas1412.user.security;
 
 import lombok.Getter;
-import me.kitkas1412.ticketbooking.entity.Role;
-import me.kitkas1412.ticketbooking.entity.User;
+import me.kitkas1412.user.entity.Role;
+import me.kitkas1412.user.entity.User;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;

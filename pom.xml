@@ -30,10 +30,10 @@
          Maven reactor tự tính toán thứ tự build dựa trên dependency -->
     <modules>
         <module>start</module>
+        <module>common</module>
+        <module>infrastructure</module>
         <module>modules/event</module>
         <module>modules/user</module>
-        <module>infrastructure</module>
-        <module>common</module>
         <module>modules/order</module>
         <module>modules/orderitem</module>
         <module>modules/ticket</module>

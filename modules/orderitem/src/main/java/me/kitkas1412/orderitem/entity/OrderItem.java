@@ -3,6 +3,9 @@ package me.kitkas1412.orderitem.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import me.kitkas1412.order.entity.Order;
+import me.kitkas1412.persistence.BaseEntity;
+import me.kitkas1412.ticket.entity.Ticket;
 
 import java.math.BigDecimal;
 
@@ -14,7 +17,7 @@ import java.math.BigDecimal;
 @SuperBuilder
 @ToString(callSuper = true)
 @Table(name = "order_item")
-public class OrderItem extends BaseEntity{
+public class OrderItem extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)

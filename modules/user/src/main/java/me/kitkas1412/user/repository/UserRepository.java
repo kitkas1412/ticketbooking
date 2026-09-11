@@ -1,6 +1,6 @@
 package me.kitkas1412.user.repository;
 
-import me.kitkas1412.ticketbooking.entity.User;
+import me.kitkas1412.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

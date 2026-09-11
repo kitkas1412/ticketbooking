@@ -1,8 +1,9 @@
 package me.kitkas1412.user.service;
 
-import me.kitkas1412.ticketbooking.dto.request.LoginRequest;
-import me.kitkas1412.ticketbooking.dto.request.RegisterRequest;
-import me.kitkas1412.ticketbooking.dto.response.LoginResponse;
+
+import me.kitkas1412.user.dto.request.LoginRequest;
+import me.kitkas1412.user.dto.request.RegisterRequest;
+import me.kitkas1412.user.dto.response.LoginResponse;
 
 public interface AuthService {
 

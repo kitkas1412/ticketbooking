@@ -1,10 +1,10 @@
 package me.kitkas1412.orderitem.service.impl;
 
-import me.kitkas1412.ticketbooking.entity.Order;
-import me.kitkas1412.ticketbooking.entity.OrderItem;
-import me.kitkas1412.ticketbooking.entity.Ticket;
-import me.kitkas1412.ticketbooking.repository.OrderItemRepository;
-import me.kitkas1412.ticketbooking.service.OrderItemService;
+import me.kitkas1412.order.entity.Order;
+import me.kitkas1412.orderitem.entity.OrderItem;
+import me.kitkas1412.orderitem.repository.OrderItemRepository;
+import me.kitkas1412.orderitem.service.OrderItemService;
+import me.kitkas1412.ticket.entity.Ticket;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

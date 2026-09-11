@@ -1,7 +1,7 @@
 package me.kitkas1412.event.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import me.kitkas1412.ticketbooking.entity.Event;
+import me.kitkas1412.event.entity.Event;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;

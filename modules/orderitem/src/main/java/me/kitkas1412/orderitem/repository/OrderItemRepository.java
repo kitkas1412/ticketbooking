@@ -1,7 +1,8 @@
 package me.kitkas1412.orderitem.repository;
 
-import me.kitkas1412.ticketbooking.entity.Order;
-import me.kitkas1412.ticketbooking.entity.OrderItem;
+
+import me.kitkas1412.order.entity.Order;
+import me.kitkas1412.orderitem.entity.OrderItem;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

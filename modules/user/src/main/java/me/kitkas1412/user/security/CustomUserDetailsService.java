@@ -1,7 +1,7 @@
 package me.kitkas1412.user.security;
 
-import me.kitkas1412.ticketbooking.entity.User;
-import me.kitkas1412.ticketbooking.repository.UserRepository;
+import me.kitkas1412.user.entity.User;
+import me.kitkas1412.user.repository.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;

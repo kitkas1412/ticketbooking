@@ -1,7 +1,7 @@
 package me.kitkas1412.outboxevent.mq;
 
-import me.kitkas1412.ticketbooking.entity.OutboxEvent;
-import me.kitkas1412.ticketbooking.repository.OutboxEventRepository;
+import me.kitkas1412.outboxevent.entity.OutboxEvent;
+import me.kitkas1412.outboxevent.repository.OutboxEventRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;

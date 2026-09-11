@@ -1,14 +1,14 @@
 package me.kitkas1412.event.service.impl;
 
-import me.kitkas1412.ticketbooking.dto.request.CreateEventRequest;
-import me.kitkas1412.ticketbooking.dto.response.EventResponse;
-import me.kitkas1412.ticketbooking.entity.Event;
-import me.kitkas1412.ticketbooking.entity.Ticket;
-import me.kitkas1412.ticketbooking.mapper.EventMapper;
-import me.kitkas1412.ticketbooking.redis.TicketInventoryKey;
-import me.kitkas1412.ticketbooking.repository.EventRepository;
-import me.kitkas1412.ticketbooking.repository.TicketRepository;
-import me.kitkas1412.ticketbooking.service.EventService;
+import me.kitkas1412.event.dto.request.CreateEventRequest;
+import me.kitkas1412.event.dto.response.EventResponse;
+import me.kitkas1412.event.entity.Event;
+import me.kitkas1412.ticket.entity.Ticket;
+import me.kitkas1412.event.mapper.EventMapper;
+import me.kitkas1412.ticket.cache.TicketInventoryKey;
+import me.kitkas1412.event.repository.EventRepository;
+import me.kitkas1412.ticket.repository.TicketRepository;
+import me.kitkas1412.event.service.EventService;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

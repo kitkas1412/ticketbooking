@@ -3,6 +3,7 @@ package me.kitkas1412.user.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import me.kitkas1412.persistence.BaseEntity;
 
 import java.util.EnumSet;
 import java.util.Set;

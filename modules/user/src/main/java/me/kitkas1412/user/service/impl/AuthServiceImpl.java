@@ -1,15 +1,15 @@
 package me.kitkas1412.user.service.impl;
 
-import me.kitkas1412.ticketbooking.dto.request.LoginRequest;
-import me.kitkas1412.ticketbooking.dto.request.RegisterRequest;
-import me.kitkas1412.ticketbooking.dto.response.LoginResponse;
-import me.kitkas1412.ticketbooking.entity.Role;
-import me.kitkas1412.ticketbooking.entity.User;
-import me.kitkas1412.ticketbooking.exception.EmailAlreadyExistsException;
-import me.kitkas1412.ticketbooking.repository.UserRepository;
-import me.kitkas1412.ticketbooking.security.CustomUserDetails;
-import me.kitkas1412.ticketbooking.security.JwtService;
-import me.kitkas1412.ticketbooking.service.AuthService;
+import me.kitkas1412.security.JwtService;
+import me.kitkas1412.user.dto.request.LoginRequest;
+import me.kitkas1412.user.dto.request.RegisterRequest;
+import me.kitkas1412.user.dto.response.LoginResponse;
+import me.kitkas1412.user.entity.Role;
+import me.kitkas1412.user.entity.User;
+import me.kitkas1412.user.exception.EmailAlreadyExistsException;
+import me.kitkas1412.user.repository.UserRepository;
+import me.kitkas1412.user.security.CustomUserDetails;
+import me.kitkas1412.user.service.AuthService;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;

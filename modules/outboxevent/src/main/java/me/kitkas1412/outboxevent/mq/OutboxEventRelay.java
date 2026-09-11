@@ -1,7 +1,8 @@
 package me.kitkas1412.outboxevent.mq;
 
-import me.kitkas1412.ticketbooking.entity.OutboxEvent;
-import me.kitkas1412.ticketbooking.repository.OutboxEventRepository;
+import me.kitkas1412.config.RabbitMQConfig;
+import me.kitkas1412.outboxevent.entity.OutboxEvent;
+import me.kitkas1412.outboxevent.repository.OutboxEventRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;

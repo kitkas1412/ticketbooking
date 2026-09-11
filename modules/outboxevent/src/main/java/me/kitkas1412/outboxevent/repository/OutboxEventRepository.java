@@ -1,6 +1,6 @@
 package me.kitkas1412.outboxevent.repository;
 
-import me.kitkas1412.ticketbooking.entity.OutboxEvent;
+import me.kitkas1412.outboxevent.entity.OutboxEvent;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 

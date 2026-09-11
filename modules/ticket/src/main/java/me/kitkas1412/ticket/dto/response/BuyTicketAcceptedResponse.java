@@ -1,7 +1,7 @@
 package me.kitkas1412.ticket.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import me.kitkas1412.ticketbooking.entity.Order;
+import me.kitkas1412.order.entity.Order;
 
 import java.util.UUID;
 

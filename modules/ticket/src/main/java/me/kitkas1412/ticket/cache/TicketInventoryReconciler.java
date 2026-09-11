@@ -1,9 +1,9 @@
 package me.kitkas1412.ticket.cache;
 
-import me.kitkas1412.ticketbooking.entity.Event;
-import me.kitkas1412.ticketbooking.entity.Ticket;
-import me.kitkas1412.ticketbooking.repository.EventRepository;
-import me.kitkas1412.ticketbooking.repository.TicketRepository;
+import me.kitkas1412.event.entity.Event;
+import me.kitkas1412.event.repository.EventRepository;
+import me.kitkas1412.ticket.entity.Ticket;
+import me.kitkas1412.ticket.repository.TicketRepository;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;

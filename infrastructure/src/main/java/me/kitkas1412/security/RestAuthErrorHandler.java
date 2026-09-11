@@ -1,9 +1,9 @@
-package me.kitkas1412.user.security;
+package me.kitkas1412.security;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import me.kitkas1412.ticketbooking.dto.response.ApiResponse;
-import me.kitkas1412.ticketbooking.dto.response.ErrorDetail;
+import me.kitkas1412.common.response.ApiResponse;
+import me.kitkas1412.common.response.ErrorDetail;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;

@@ -10,6 +10,7 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
+    <groupId>me.kitkas1412.modules</groupId>
     <artifactId>orderitem</artifactId>
 
     <properties>
@@ -17,5 +18,23 @@
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>me.kitkas1412</groupId>
+            <artifactId>common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>me.kitkas1412</groupId>
+            <artifactId>infrastructure</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>me.kitkas1412.modules</groupId>
+            <artifactId>order</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
 
 </project>

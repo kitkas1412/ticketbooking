@@ -3,6 +3,8 @@ package me.kitkas1412.order.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import me.kitkas1412.event.entity.Event;
+import me.kitkas1412.persistence.BaseEntity;
 
 @Entity
 @Getter
