@@ -179,7 +179,7 @@ A ready-to-use request collection is available at [`postman/ticketbooking.postma
 ### Run locally (without Docker)
 
 1. Start PostgreSQL and Redis locally.
-2. Update `src/main/resources/application-local.yaml` with your local database credentials if they differ from the defaults.
+2. Update `start/src/main/resources/application-local.yaml` with your local database credentials if they differ from the defaults.
 3. Run with the `local` profile:
 
    ```bash
