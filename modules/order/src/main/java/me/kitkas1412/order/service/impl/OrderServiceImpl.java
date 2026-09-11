@@ -1,11 +1,10 @@
 package me.kitkas1412.order.service.impl;
 
+import me.kitkas1412.common.exception.ResourceNotFoundException;
 import me.kitkas1412.config.RabbitMQConfig;
 import me.kitkas1412.event.entity.Event;
-import me.kitkas1412.event.exception.EventNotFoundException;
 import me.kitkas1412.event.repository.EventRepository;
 import me.kitkas1412.order.entity.Order;
-import me.kitkas1412.order.exception.OrderNotFoundException;
 import me.kitkas1412.order.repository.OrderRepository;
 import me.kitkas1412.order.service.OrderService;
 import me.kitkas1412.orderitem.entity.OrderItem;
@@ -16,7 +15,7 @@ import me.kitkas1412.outboxevent.repository.OutboxEventRepository;
 import me.kitkas1412.ticket.cache.TicketInventoryKey;
 import me.kitkas1412.ticket.dto.request.BuyTicketRequest;
 import me.kitkas1412.ticket.dto.response.BuyTicketAcceptedResponse;
-import me.kitkas1412.ticket.exception.NoTicketAvailableException;
+import me.kitkas1412.common.exception.NoTicketAvailableException;
 import me.kitkas1412.ticket.mapper.TicketMapper;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -64,7 +63,7 @@ public class OrderServiceImpl implements OrderService {
         if(redisTemplate.opsForValue().decrement(key) < 0){
             redisTemplate.opsForValue().increment(key);
             if (!eventRepository.existsById(eventId)){
-                throw new EventNotFoundException("Không tìm thấy Event!");
+                throw new ResourceNotFoundException("Không tìm thấy Event!");
             }
             throw new NoTicketAvailableException("Hết vé!");
         }
@@ -118,7 +117,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(readOnly = true)
     public Object getOrderStatus(UUID orderId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new OrderNotFoundException("Không tìm thấy Order!"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Order!"));
 
         if (order.getStatus() == Order.OrderStatus.CONFIRMED) {
             OrderItem orderItem = orderItemRepository.findByOrder(order)
@@ -131,6 +130,6 @@ public class OrderServiceImpl implements OrderService {
 
     private Event findEventByIdOrThrow(UUID eventId) {
         return eventRepository.findById(eventId)
-                .orElseThrow(() -> new EventNotFoundException("Không tìm thấy Event!"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Event!"));
     }
 }

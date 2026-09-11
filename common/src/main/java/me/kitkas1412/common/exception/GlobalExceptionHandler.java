@@ -1,13 +1,9 @@
 package me.kitkas1412.common.exception;
 
-import me.kitkas1412.ticketbooking.dto.response.ApiResponse;
-import me.kitkas1412.ticketbooking.dto.response.ErrorDetail;
+import me.kitkas1412.common.response.ApiResponse;
+import me.kitkas1412.common.response.ErrorDetail;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.DisabledException;
-import org.springframework.security.authentication.LockedException;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -16,6 +12,16 @@ import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleResourceNotFound(ResourceNotFoundException ex) {
+        ErrorDetail error = new ErrorDetail(
+                HttpStatus.NOT_FOUND.value(),
+                HttpStatus.NOT_FOUND.getReasonPhrase(),
+                ex.getMessage()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(error));
+    }
 
     @ExceptionHandler(NoTicketAvailableException.class)
     public ResponseEntity<ApiResponse<Void>> handleNoTicketAvailable(NoTicketAvailableException ex) {
@@ -27,16 +33,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error(error));
     }
 
-    @ExceptionHandler(EventNotFoundException.class)
-    public ResponseEntity<ApiResponse<Void>> handleEventNotFound(EventNotFoundException ex) {
-        ErrorDetail error = new ErrorDetail(
-                HttpStatus.NOT_FOUND.value(),
-                HttpStatus.NOT_FOUND.getReasonPhrase(),
-                ex.getMessage()
-        );
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(error));
-    }
-
     @ExceptionHandler(EmailAlreadyExistsException.class)
     public ResponseEntity<ApiResponse<Void>> handleEmailAlreadyExists(EmailAlreadyExistsException ex) {
         ErrorDetail error = new ErrorDetail(
@@ -45,16 +41,6 @@ public class GlobalExceptionHandler {
                 ex.getMessage()
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error(error));
-    }
-
-    @ExceptionHandler(OrderNotFoundException.class)
-    public ResponseEntity<ApiResponse<Void>> handleOrderNotFound(OrderNotFoundException ex) {
-        ErrorDetail error = new ErrorDetail(
-                HttpStatus.NOT_FOUND.value(),
-                HttpStatus.NOT_FOUND.getReasonPhrase(),
-                ex.getMessage()
-        );
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(error));
     }
 
     /**
