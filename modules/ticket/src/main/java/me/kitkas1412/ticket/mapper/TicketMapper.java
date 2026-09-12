@@ -1,25 +1,8 @@
 package me.kitkas1412.ticket.mapper;
 
-import me.kitkas1412.order.entity.Order;
-import me.kitkas1412.ticket.dto.response.BuyTicketAcceptedResponse;
-import me.kitkas1412.ticket.dto.response.BuyTicketResponse;
-import me.kitkas1412.ticket.entity.Ticket;
 import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface TicketMapper {
 
-    @Mapping(target = "ticketId", source = "ticket.id")
-    @Mapping(target = "seatCode", source = "ticket.seatCode")
-    @Mapping(target = "status", source = "ticket.status")
-    @Mapping(target = "eventId", source = "ticket.event.id")
-    @Mapping(target = "orderId", source = "order.id")
-    @Mapping(target = "price", source = "ticket.price")
-    BuyTicketResponse toBuyTicketResponse(Ticket ticket, Order order);
-
-    @Mapping(target = "orderId", source = "id")
-    @Mapping(target = "eventId", source = "event.id")
-    @Mapping(target = "status", source = "status")
-    BuyTicketAcceptedResponse toBuyTicketAcceptedResponse(Order order);
 }
