@@ -21,8 +21,13 @@
 
     <dependencies>
         <dependency>
-            <groupId>me.kitkas1412.modules</groupId>
-            <artifactId>event</artifactId>
+            <groupId>me.kitkas1412</groupId>
+            <artifactId>common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>me.kitkas1412</groupId>
+            <artifactId>infrastructure</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

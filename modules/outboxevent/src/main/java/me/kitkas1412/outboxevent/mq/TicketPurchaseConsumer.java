@@ -1,13 +1,14 @@
 package me.kitkas1412.outboxevent.mq;
 
-import me.kitkas1412.ticketbooking.entity.Event;
-import me.kitkas1412.ticketbooking.entity.Order;
-import me.kitkas1412.ticketbooking.entity.Ticket;
-import me.kitkas1412.ticketbooking.exception.NoTicketAvailableException;
-import me.kitkas1412.ticketbooking.redis.TicketInventoryKey;
-import me.kitkas1412.ticketbooking.repository.OrderRepository;
-import me.kitkas1412.ticketbooking.service.OrderItemService;
-import me.kitkas1412.ticketbooking.service.TicketService;
+import me.kitkas1412.common.exception.ResourceNotFoundException;
+import me.kitkas1412.config.RabbitMQConfig;
+import me.kitkas1412.event.entity.Event;
+import me.kitkas1412.order.entity.Order;
+import me.kitkas1412.order.repository.OrderRepository;
+import me.kitkas1412.orderitem.service.OrderItemService;
+import me.kitkas1412.ticket.cache.TicketInventoryKey;
+import me.kitkas1412.ticket.entity.Ticket;
+import me.kitkas1412.ticket.service.TicketService;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
@@ -45,7 +46,7 @@ public class TicketPurchaseConsumer {
             orderItemService.createOrderItem(order, ticket, ticket.getPrice());
             order.setStatus(Order.OrderStatus.CONFIRMED);
             orderRepository.save(order);
-        } catch (NoTicketAvailableException e) {
+        } catch (ResourceNotFoundException e) {
             order.setStatus(Order.OrderStatus.FAILED);
             orderRepository.save(order);
             redisTemplate.opsForValue().increment(TicketInventoryKey.availableTickets(message.eventId()));

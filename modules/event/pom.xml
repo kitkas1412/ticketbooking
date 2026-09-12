@@ -30,16 +30,6 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>me.kitkas1412.modules</groupId>
-            <artifactId>order</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>me.kitkas1412.modules</groupId>
-            <artifactId>ticket</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>

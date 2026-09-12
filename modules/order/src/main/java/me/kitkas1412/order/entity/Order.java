@@ -6,6 +6,8 @@ import lombok.experimental.SuperBuilder;
 import me.kitkas1412.event.entity.Event;
 import me.kitkas1412.persistence.BaseEntity;
 
+import java.util.UUID;
+
 @Entity
 @Getter
 @Setter
@@ -16,9 +18,8 @@ import me.kitkas1412.persistence.BaseEntity;
 @Table(name =  "orders")
 public class Order extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_id", nullable = false)
-    private Event event;
+    @Column(name = "event_id", nullable = false)
+    private UUID event_id;
 
     @Column(name = "idempotency_key", nullable = false, unique = true)
     private String idempotencyKey;

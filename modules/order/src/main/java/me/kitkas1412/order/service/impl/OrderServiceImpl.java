@@ -1,5 +1,6 @@
 package me.kitkas1412.order.service.impl;
 
+import me.kitkas1412.common.event.EventCheckRequiredEvent;
 import me.kitkas1412.common.exception.ResourceNotFoundException;
 import me.kitkas1412.config.RabbitMQConfig;
 import me.kitkas1412.event.entity.Event;
@@ -17,6 +18,7 @@ import me.kitkas1412.ticket.dto.request.BuyTicketRequest;
 import me.kitkas1412.ticket.dto.response.BuyTicketAcceptedResponse;
 import me.kitkas1412.common.exception.NoTicketAvailableException;
 import me.kitkas1412.ticket.mapper.TicketMapper;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,16 +33,16 @@ import java.util.UUID;
 @Service
 public class OrderServiceImpl implements OrderService {
 
-    private final EventRepository eventRepository;
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final OutboxEventRepository outboxEventRepository;
     private final TicketMapper ticketMapper;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
+    private final ApplicationEventPublisher eventPublisher;  // ✅ NEW
 
-    public OrderServiceImpl(EventRepository eventRepository, OrderRepository orderRepository, OrderItemRepository orderItemRepository, OutboxEventRepository outboxEventRepository, TicketMapper ticketMapper, StringRedisTemplate redisTemplate, ObjectMapper objectMapper) {
-        this.eventRepository = eventRepository;
+    public OrderServiceImpl(EventRepository eventRepository, OrderRepository orderRepository, OrderItemRepository orderItemRepository, OutboxEventRepository outboxEventRepository, TicketMapper ticketMapper, StringRedisTemplate redisTemplate, ObjectMapper objectMapper, ApplicationEventPublisher eventPublisher) {
+        this.eventPublisher = eventPublisher;
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.outboxEventRepository = outboxEventRepository;
@@ -51,7 +53,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public Optional<BuyTicketAcceptedResponse> buyTicket(BuyTicketRequest request, UUID eventId) {
+    public Optional<BuyTicketAcceptedResponse> buyTicket(BuyTicketRequest request, UUID eventId) throws Exception {
         String key = TicketInventoryKey.availableTickets(eventId);
         String idempotencyKey = TicketInventoryKey.idempotencyKey(request.idempotencyKey());
 
@@ -62,7 +64,14 @@ public class OrderServiceImpl implements OrderService {
 
         if(redisTemplate.opsForValue().decrement(key) < 0){
             redisTemplate.opsForValue().increment(key);
-            if (!eventRepository.existsById(eventId)){
+
+            EventCheckRequiredEvent event = new EventCheckRequiredEvent(this, eventId);
+            eventPublisher.publishEvent(event);
+            if (event.getException() != null){
+                throw event.getException();
+            }
+
+            if (!event.isEventExists()){
                 throw new ResourceNotFoundException("Không tìm thấy Event!");
             }
             throw new NoTicketAvailableException("Hết vé!");
@@ -75,11 +84,9 @@ public class OrderServiceImpl implements OrderService {
         // leaking the claimed ticket until the reconciler happens to run.
         registerInventoryCompensation(key, idempotencyKey);
 
-        Event event = findEventByIdOrThrow(eventId);
-
         Order order = orderRepository.save(Order.builder()
                 .idempotencyKey(request.idempotencyKey())
-                .event(event)
+                .event_id(eventId)
                 .build());
 
         outboxEventRepository.save(OutboxEvent.builder()
@@ -126,10 +133,5 @@ public class OrderServiceImpl implements OrderService {
         }
 
         return ticketMapper.toBuyTicketAcceptedResponse(order);
-    }
-
-    private Event findEventByIdOrThrow(UUID eventId) {
-        return eventRepository.findById(eventId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Event!"));
     }
 }
