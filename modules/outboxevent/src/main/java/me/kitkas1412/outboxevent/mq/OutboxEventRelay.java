@@ -1,6 +1,7 @@
 package me.kitkas1412.outboxevent.mq;
 
 import me.kitkas1412.config.RabbitMQConfig;
+import me.kitkas1412.mq.BuyTicketMessage;
 import me.kitkas1412.outboxevent.entity.OutboxEvent;
 import me.kitkas1412.outboxevent.repository.OutboxEventRepository;
 import org.slf4j.Logger;

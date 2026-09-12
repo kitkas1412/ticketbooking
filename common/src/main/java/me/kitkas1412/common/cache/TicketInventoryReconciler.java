@@ -1,4 +1,4 @@
-package me.kitkas1412.ticket.cache;
+package me.kitkas1412.common.cache;
 
 import me.kitkas1412.event.entity.Event;
 import me.kitkas1412.event.repository.EventRepository;

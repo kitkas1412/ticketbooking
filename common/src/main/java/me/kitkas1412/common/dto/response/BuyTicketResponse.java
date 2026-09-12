@@ -1,7 +1,6 @@
-package me.kitkas1412.ticket.dto.response;
+package me.kitkas1412.common.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import me.kitkas1412.ticket.entity.Ticket;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -16,7 +15,7 @@ public record BuyTicketResponse(
         Integer seatCode,
 
         @Schema(description = "Trạng thái vé", example = "SOLD")
-        Ticket.TicketStatus status,
+        String status,
 
         @Schema(description = "ID sự kiện", example = "9f1c0a2e-7b4d-4c31-a6b5-2f8e1d3c4a5b")
         UUID eventId,

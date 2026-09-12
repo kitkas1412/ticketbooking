@@ -1,4 +1,4 @@
-package me.kitkas1412.ticket.dto.request;
+package me.kitkas1412.common.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 

@@ -1,4 +1,4 @@
-package me.kitkas1412.ticket.cache;
+package me.kitkas1412.common.cache;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;

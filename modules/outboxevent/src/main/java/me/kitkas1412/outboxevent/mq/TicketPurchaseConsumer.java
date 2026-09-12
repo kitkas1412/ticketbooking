@@ -3,6 +3,7 @@ package me.kitkas1412.outboxevent.mq;
 import me.kitkas1412.common.exception.ResourceNotFoundException;
 import me.kitkas1412.config.RabbitMQConfig;
 import me.kitkas1412.event.entity.Event;
+import me.kitkas1412.mq.BuyTicketMessage;
 import me.kitkas1412.order.entity.Order;
 import me.kitkas1412.order.repository.OrderRepository;
 import me.kitkas1412.orderitem.service.OrderItemService;

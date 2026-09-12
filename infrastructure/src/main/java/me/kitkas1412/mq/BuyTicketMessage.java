@@ -1,4 +1,4 @@
-package me.kitkas1412.outboxevent.mq;
+package me.kitkas1412.mq;
 
 import java.util.UUID;
 

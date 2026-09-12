@@ -1,23 +1,18 @@
 package me.kitkas1412.order.service.impl;
 
+import me.kitkas1412.common.cache.TicketInventoryKey;
+import me.kitkas1412.common.dto.request.BuyTicketRequest;
+import me.kitkas1412.common.dto.response.BuyTicketAcceptedResponse;
 import me.kitkas1412.common.event.EventCheckRequiredEvent;
+import me.kitkas1412.common.event.OutboxEventRequestedEvent;
 import me.kitkas1412.common.exception.ResourceNotFoundException;
 import me.kitkas1412.config.RabbitMQConfig;
-import me.kitkas1412.event.entity.Event;
-import me.kitkas1412.event.repository.EventRepository;
+import me.kitkas1412.mq.BuyTicketMessage;
 import me.kitkas1412.order.entity.Order;
+import me.kitkas1412.order.mapper.OrderMapper;
 import me.kitkas1412.order.repository.OrderRepository;
 import me.kitkas1412.order.service.OrderService;
-import me.kitkas1412.orderitem.entity.OrderItem;
-import me.kitkas1412.orderitem.repository.OrderItemRepository;
-import me.kitkas1412.outboxevent.entity.OutboxEvent;
-import me.kitkas1412.outboxevent.mq.BuyTicketMessage;
-import me.kitkas1412.outboxevent.repository.OutboxEventRepository;
-import me.kitkas1412.ticket.cache.TicketInventoryKey;
-import me.kitkas1412.ticket.dto.request.BuyTicketRequest;
-import me.kitkas1412.ticket.dto.response.BuyTicketAcceptedResponse;
 import me.kitkas1412.common.exception.NoTicketAvailableException;
-import me.kitkas1412.ticket.mapper.TicketMapper;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -34,19 +29,15 @@ import java.util.UUID;
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
-    private final OrderItemRepository orderItemRepository;
-    private final OutboxEventRepository outboxEventRepository;
-    private final TicketMapper ticketMapper;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
-    private final ApplicationEventPublisher eventPublisher;  // ✅ NEW
+    private final OrderMapper orderMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public OrderServiceImpl(EventRepository eventRepository, OrderRepository orderRepository, OrderItemRepository orderItemRepository, OutboxEventRepository outboxEventRepository, TicketMapper ticketMapper, StringRedisTemplate redisTemplate, ObjectMapper objectMapper, ApplicationEventPublisher eventPublisher) {
+    public OrderServiceImpl(OrderRepository orderRepository, StringRedisTemplate redisTemplate, ObjectMapper objectMapper, OrderMapper orderMapper, ApplicationEventPublisher eventPublisher) {
+        this.orderMapper = orderMapper;
         this.eventPublisher = eventPublisher;
         this.orderRepository = orderRepository;
-        this.orderItemRepository = orderItemRepository;
-        this.outboxEventRepository = outboxEventRepository;
-        this.ticketMapper = ticketMapper;
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
     }
@@ -89,14 +80,14 @@ public class OrderServiceImpl implements OrderService {
                 .event_id(eventId)
                 .build());
 
-        outboxEventRepository.save(OutboxEvent.builder()
-                .aggregateType("ORDER")
-                .aggregateId(order.getId())
-                .eventType(RabbitMQConfig.TICKET_BUY_REQUESTED_EVENT)
-                .payload(objectMapper.writeValueAsString(new BuyTicketMessage(eventId, order.getId())))
-                .build());
+        eventPublisher.publishEvent(new OutboxEventRequestedEvent(
+                this,
+                "ORDER",
+                order.getId(),
+                RabbitMQConfig.TICKET_BUY_REQUESTED_EVENT,
+                objectMapper.writeValueAsString(new BuyTicketMessage(eventId, order.getId()))));
 
-        return Optional.of(ticketMapper.toBuyTicketAcceptedResponse(order));
+        return Optional.of(orderMapper.toBuyTicketAcceptedResponse(order));
     }
 
     /**
@@ -120,18 +111,18 @@ public class OrderServiceImpl implements OrderService {
         });
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public Object getOrderStatus(UUID orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Order!"));
-
-        if (order.getStatus() == Order.OrderStatus.CONFIRMED) {
-            OrderItem orderItem = orderItemRepository.findByOrder(order)
-                    .orElseThrow(() -> new IllegalStateException("Order CONFIRMED nhưng không có OrderItem: " + orderId));
-            return ticketMapper.toBuyTicketResponse(orderItem.getTicket(), order);
-        }
-
-        return ticketMapper.toBuyTicketAcceptedResponse(order);
-    }
+//    @Override
+//    @Transactional(readOnly = true)
+//    public Object getOrderStatus(UUID orderId) {
+//        Order order = orderRepository.findById(orderId)
+//                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Order!"));
+//
+//        if (order.getStatus() == Order.OrderStatus.CONFIRMED) {
+//            OrderItem orderItem = orderItemRepository.findByOrder(order)
+//                    .orElseThrow(() -> new IllegalStateException("Order CONFIRMED nhưng không có OrderItem: " + orderId));
+//            return ticketMapper.toBuyTicketResponse(orderItem.getTicket(), order);
+//        }
+//
+//        return ticketMapper.toBuyTicketAcceptedResponse(order);
+//    }
 }
