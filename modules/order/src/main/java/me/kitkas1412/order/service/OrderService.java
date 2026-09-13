@@ -8,7 +8,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface OrderService {
-    Optional<BuyTicketAcceptedResponse> buyTicket(BuyTicketRequest request, UUID eventId);
+    Optional<BuyTicketAcceptedResponse> buyTicket(BuyTicketRequest request, UUID eventId) throws Exception;
 
 //    Object getOrderStatus(UUID orderId);
 }

@@ -86,7 +86,7 @@ public class OrderController {
     public ResponseEntity<ApiResponse<BuyTicketAcceptedResponse>> buyTicket(
             @RequestBody BuyTicketRequest request,
             @Parameter(description = "ID sự kiện muốn mua vé", required = true)
-            @PathVariable UUID eventId){
+            @PathVariable UUID eventId) throws Exception {
         Optional<BuyTicketAcceptedResponse> response = orderService.buyTicket(request, eventId);
         if (response.isPresent()) {
             return ResponseEntity.status(HttpStatus.ACCEPTED).body(ApiResponse.success(response.get()));
