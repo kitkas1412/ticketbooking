@@ -2,7 +2,9 @@ package me.kitkas1412.event.service.impl;
 
 import me.kitkas1412.common.cache.TicketInventoryKey;
 import me.kitkas1412.common.event.TicketRequestedEvent;
+import me.kitkas1412.common.exception.ResourceNotFoundException;
 import me.kitkas1412.event.dto.request.CreateEventRequest;
+import me.kitkas1412.event.dto.request.UpdateEventRequest;
 import me.kitkas1412.event.dto.response.EventResponse;
 import me.kitkas1412.event.entity.Event;
 import me.kitkas1412.event.mapper.EventMapper;
@@ -12,6 +14,9 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class EventServiceImpl implements EventService {
@@ -46,5 +51,23 @@ public class EventServiceImpl implements EventService {
         System.out.println(redisTemplate.opsForValue().get(TicketInventoryKey.availableTickets(event.getId())));
 
         return eventMapper.toResponse(event);
+    }
+
+    @Override
+    public EventResponse getEventById(UUID eventId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy event"));
+
+        return eventMapper.toResponse(event);
+    }
+
+    @Override
+    public EventResponse updateEvent(UpdateEventRequest updateEventRequest) {
+        return null;
+    }
+
+    @Override
+    public void deleteEvent(UUID eventId) {
+
     }
 }

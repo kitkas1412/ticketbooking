@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/events")
 @Tag(name = "Events", description = "Tạo sự kiện và đặt mua vé")
@@ -37,5 +39,20 @@ public class EventController {
     public ResponseEntity<ApiResponse<EventResponse>> createEvent(@RequestBody CreateEventRequest request){
         EventResponse response = eventService.createEvent(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+    }
+
+    @Operation(
+            summary = "Lấy thông tin sự kiện",
+            description = "Lấy chi tiết một sự kiện theo ID")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "202", description = "Lấy sự kiện thành công"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404", description = "Sự kiện không tồn tại")
+    })
+    @GetMapping("/{eventId}")
+    public ResponseEntity<ApiResponse<EventResponse>> getEvent(@PathVariable UUID eventId){
+        EventResponse response = eventService.getEventById(eventId);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(ApiResponse.success(response));
     }
 }
