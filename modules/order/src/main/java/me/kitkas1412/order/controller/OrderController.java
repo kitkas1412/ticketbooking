@@ -6,18 +6,18 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import me.kitkas1412.common.dto.request.BuyTicketRequest;
 import me.kitkas1412.common.response.ApiResponse;
 import me.kitkas1412.common.dto.response.BuyTicketAcceptedResponse;
 import me.kitkas1412.common.dto.response.BuyTicketResponse;
 import me.kitkas1412.common.response.ErrorDetail;
 import me.kitkas1412.order.service.OrderService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -59,6 +59,40 @@ public class OrderController {
 //        Object response = orderService.getOrderStatus(orderId);
 //        return ResponseEntity.ok(ApiResponse.success(response));
 //    }
+
+    @Operation(
+            summary = "Đặt mua vé",
+            description = """
+                    Xử lý bất đồng bộ: request chỉ giữ chỗ trong tồn kho Redis rồi đẩy message
+                    sang RabbitMQ, nên `202` nghĩa là **đã nhận yêu cầu**, chưa phải đã mua xong.
+                    Dùng `GET /api/orders/{orderId}` để theo dõi trạng thái thực tế.
+
+                    `idempotencyKey` trong body cho phép gửi lại an toàn khi client timeout:
+                    cùng một key sẽ trả về đúng đơn cũ thay vì tạo đơn thứ hai.
+                    """)
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "202", description = "Đã nhận yêu cầu, đơn hàng đang được xử lý"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200", description = "Không tạo được đơn mới (ví dụ yêu cầu trùng đã xử lý xong)"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401", description = "Thiếu token hoặc token hết hạn"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404", description = "Không tìm thấy sự kiện tương ứng"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "409", description = "Đã hết vé")
+    })
+    @PostMapping("/{eventId}/buy")
+    public ResponseEntity<ApiResponse<BuyTicketAcceptedResponse>> buyTicket(
+            @RequestBody BuyTicketRequest request,
+            @Parameter(description = "ID sự kiện muốn mua vé", required = true)
+            @PathVariable UUID eventId){
+        Optional<BuyTicketAcceptedResponse> response = orderService.buyTicket(request, eventId);
+        if (response.isPresent()) {
+            return ResponseEntity.status(HttpStatus.ACCEPTED).body(ApiResponse.success(response.get()));
+        }
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success(null));
+    }
 
     /**
      * Kiểu chỉ tồn tại để sinh tài liệu, không dùng lúc chạy.

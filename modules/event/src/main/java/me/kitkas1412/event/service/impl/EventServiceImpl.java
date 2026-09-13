@@ -1,54 +1,50 @@
 package me.kitkas1412.event.service.impl;
 
+import me.kitkas1412.common.cache.TicketInventoryKey;
+import me.kitkas1412.common.event.TicketRequestedEvent;
 import me.kitkas1412.event.dto.request.CreateEventRequest;
 import me.kitkas1412.event.dto.response.EventResponse;
 import me.kitkas1412.event.entity.Event;
-import me.kitkas1412.ticket.entity.Ticket;
 import me.kitkas1412.event.mapper.EventMapper;
-import me.kitkas1412.ticket.cache.TicketInventoryKey;
 import me.kitkas1412.event.repository.EventRepository;
-import me.kitkas1412.ticket.repository.TicketRepository;
 import me.kitkas1412.event.service.EventService;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.stream.IntStream;
 
 @Service
 public class EventServiceImpl implements EventService {
 
     private final EventRepository eventRepository;
-    private final TicketRepository ticketRepository;
     private final EventMapper eventMapper;
     private final StringRedisTemplate redisTemplate;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public EventServiceImpl(EventRepository eventRepository, TicketRepository ticketRepository, EventMapper eventMapper, StringRedisTemplate redisTemplate) {
+    public EventServiceImpl(EventRepository eventRepository, EventMapper eventMapper, StringRedisTemplate redisTemplate, ApplicationEventPublisher eventPublisher) {
         this.eventRepository = eventRepository;
-        this.ticketRepository = ticketRepository;
         this.eventMapper = eventMapper;
         this.redisTemplate = redisTemplate;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
     @Transactional
     public EventResponse createEvent(CreateEventRequest request){
-        Event event = eventRepository.save(Event.builder().name(request.name()).description(request.description()).totalTickets(request.totalTickets()).saleStartAt(request.saleStartAt()).saleEndAt(request.saleEndAt()).build());
+        Event event = eventRepository.save(Event.builder()
+                .name(request.name())
+                .description(request.description())
+                .totalTickets(request.totalTickets())
+                .saleStartAt(request.saleStartAt())
+                .saleEndAt(request.saleEndAt())
+                .build());
 
-        List<Ticket> tickets = IntStream.rangeClosed(1, request.totalTickets())
-                .mapToObj(seatCode -> buildTicket(event, seatCode, request.ticketPrice()))
-                .toList();
-        ticketRepository.saveAll(tickets);
+        eventPublisher.publishEvent(new TicketRequestedEvent(
+                this, event.getId(), request.totalTickets(), request.ticketPrice()));
 
         redisTemplate.opsForValue().set(TicketInventoryKey.availableTickets(event.getId()), String.valueOf(request.totalTickets()));
         System.out.println(redisTemplate.opsForValue().get(TicketInventoryKey.availableTickets(event.getId())));
 
         return eventMapper.toResponse(event);
-    }
-
-    private Ticket buildTicket(Event event, int seatCode, BigDecimal price) {
-        return Ticket.builder().event(event).seatCode(seatCode).price(price).build();
     }
 }

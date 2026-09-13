@@ -3,10 +3,10 @@ package me.kitkas1412.ticket.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-import me.kitkas1412.event.entity.Event;
 import me.kitkas1412.persistence.BaseEntity;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Entity
 @Getter
@@ -18,9 +18,8 @@ import java.math.BigDecimal;
 @Table(name = "ticket")
 public class Ticket extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_id", nullable = false)
-    private Event event;
+    @Column(name = "event_id", nullable = false)
+    private UUID eventId;
 
     @Column(name = "seat_code", nullable = false)
     private Integer seatCode;
