@@ -1,6 +1,6 @@
 package me.kitkas1412.event.service.impl;
 
-import me.kitkas1412.common.cache.TicketInventoryKey;
+import me.kitkas1412.cache.TicketInventoryKey;
 import me.kitkas1412.common.event.TicketRequestedEvent;
 import me.kitkas1412.common.exception.ResourceNotFoundException;
 import me.kitkas1412.event.dto.request.CreateEventRequest;
@@ -15,7 +15,6 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
 import java.util.UUID;
 
 @Service

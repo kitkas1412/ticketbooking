@@ -1,6 +1,6 @@
 package me.kitkas1412.order.service.impl;
 
-import me.kitkas1412.common.cache.TicketInventoryKey;
+import me.kitkas1412.cache.TicketInventoryKey;
 import me.kitkas1412.common.dto.request.BuyTicketRequest;
 import me.kitkas1412.common.dto.response.BuyTicketAcceptedResponse;
 import me.kitkas1412.common.event.EventCheckRequiredEvent;

@@ -1,6 +1,7 @@
 package me.kitkas1412.ticket.listener;
 
 import me.kitkas1412.common.event.TicketRequestedEvent;
+import me.kitkas1412.ticket.cache.TicketInventoryReconciler;
 import me.kitkas1412.ticket.entity.Ticket;
 import me.kitkas1412.ticket.repository.TicketRepository;
 import org.springframework.context.event.EventListener;
@@ -14,9 +15,11 @@ import java.util.stream.IntStream;
 public class TicketListener {
 
     private final TicketRepository ticketRepository;
+    private final TicketInventoryReconciler reconciler;
 
-    public TicketListener(TicketRepository ticketRepository) {
+    public TicketListener(TicketRepository ticketRepository, TicketInventoryReconciler reconciler) {
         this.ticketRepository = ticketRepository;
+        this.reconciler = reconciler;
     }
 
     @EventListener
@@ -30,5 +33,10 @@ public class TicketListener {
                 .collect(Collectors.toList());
 
         ticketRepository.saveAll(tickets);
+    }
+
+    @EventListener
+    public void handleReconciler(TicketRequestedEvent event){
+        reconciler.reconcileAll();
     }
 }

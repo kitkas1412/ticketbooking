@@ -1,7 +1,6 @@
-package me.kitkas1412.common.cache;
+package me.kitkas1412.ticket.cache;
 
-import me.kitkas1412.event.entity.Event;
-import me.kitkas1412.event.repository.EventRepository;
+import me.kitkas1412.cache.TicketInventoryKey;
 import me.kitkas1412.ticket.entity.Ticket;
 import me.kitkas1412.ticket.repository.TicketRepository;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -12,23 +11,21 @@ import java.util.List;
 
 @Component
 public class TicketInventoryReconciler {
-    private final EventRepository eventRepository;
     private final TicketRepository ticketRepository;
     private final StringRedisTemplate redisTemplate;
 
-    public TicketInventoryReconciler(EventRepository eventRepository, TicketRepository ticketRepository, StringRedisTemplate redisTemplate) {
-        this.eventRepository = eventRepository;
+    public TicketInventoryReconciler(TicketRepository ticketRepository, StringRedisTemplate redisTemplate) {
         this.ticketRepository = ticketRepository;
         this.redisTemplate = redisTemplate;
     }
 
     @Scheduled(fixedRate = 300000)
     public void reconcileAll(){
-        List<Event> events = eventRepository.findAll();
+        List<Ticket> tickets = ticketRepository.findAll();
 
-        for (Event event : events){
-            Long count = ticketRepository.countByEventAndStatus(event, Ticket.TicketStatus.AVAILABLE);
-            String key = TicketInventoryKey.availableTickets(event.getId());
+        for (Ticket ticket : tickets){
+            Long count = ticketRepository.countByEventAndStatus(ticket.getEventId(), Ticket.TicketStatus.AVAILABLE);
+            String key = TicketInventoryKey.availableTickets(ticket.getId());
 
             redisTemplate.opsForValue().set(key, String.valueOf(count));
         }

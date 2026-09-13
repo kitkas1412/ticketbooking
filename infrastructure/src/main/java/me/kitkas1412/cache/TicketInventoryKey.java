@@ -1,4 +1,4 @@
-package me.kitkas1412.common.cache;
+package me.kitkas1412.cache;
 
 import java.util.UUID;
 
