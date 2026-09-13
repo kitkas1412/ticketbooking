@@ -1,12 +1,14 @@
 package me.kitkas1412.ticket.service.impl;
 
-import me.kitkas1412.event.entity.Event;
+import me.kitkas1412.common.exception.ResourceNotFoundException;
 import me.kitkas1412.ticket.entity.Ticket;
 import me.kitkas1412.common.exception.NoTicketAvailableException;
 import me.kitkas1412.ticket.repository.TicketRepository;
 import me.kitkas1412.ticket.service.TicketService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
 
 @Service
 public class TicketServiceImpl implements TicketService {
@@ -19,14 +21,10 @@ public class TicketServiceImpl implements TicketService {
 
     @Override
     @Transactional
-    public Ticket reserveTicket(Event event) {
-        Ticket ticket = findAvailableTicketOrThrow(event);
+    public Ticket reserveTicket(UUID eventId) {
+        Ticket ticket = ticketRepository.findFirstByEventAndStatus(eventId, Ticket.TicketStatus.AVAILABLE)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Ticket"));
         ticket.setStatus(Ticket.TicketStatus.SOLD);
         return ticketRepository.save(ticket);
-    }
-
-    private Ticket findAvailableTicketOrThrow(Event event) {
-        return ticketRepository.findFirstByEventAndStatus(event, Ticket.TicketStatus.AVAILABLE)
-                .orElseThrow(() -> new NoTicketAvailableException("Hết vé!"));
     }
 }
