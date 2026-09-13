@@ -3,11 +3,10 @@ package me.kitkas1412.orderitem.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-import me.kitkas1412.order.entity.Order;
 import me.kitkas1412.persistence.BaseEntity;
-import me.kitkas1412.ticket.entity.Ticket;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Entity
 @Getter
@@ -19,13 +18,11 @@ import java.math.BigDecimal;
 @Table(name = "order_item")
 public class OrderItem extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id", nullable = false)
-    private Order order;
+    @Column(name = "order_id", nullable = false)
+    private UUID orderId;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ticket_id", unique = true, nullable = false)
-    private Ticket ticket;
+    @Column(name = "ticket_id", unique = true, nullable = false)
+    private UUID ticketId;
 
     @Column(name = "price", nullable = false, precision = 12, scale = 2)
     private BigDecimal price;
