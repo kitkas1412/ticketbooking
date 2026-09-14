@@ -1,5 +1,8 @@
 package me.kitkas1412.user.entity;
 
+/**
+ * Các role USER và ADMIN dùng để phân quyền truy cập.
+ */
 public enum Role {
 
     USER,

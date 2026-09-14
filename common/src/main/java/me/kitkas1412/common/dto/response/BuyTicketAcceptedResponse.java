@@ -4,6 +4,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.UUID;
 
+/**
+ * Response khi đã nhận yêu cầu đặt vé; đơn vẫn đang chờ xử lý, chưa được cấp vé.
+ */
 @Schema(description = "Xác nhận đã nhận yêu cầu mua vé. Chưa phải kết quả cuối cùng — "
         + "poll GET /api/orders/{orderId} để biết đơn có thành công hay không.")
 public record BuyTicketAcceptedResponse(

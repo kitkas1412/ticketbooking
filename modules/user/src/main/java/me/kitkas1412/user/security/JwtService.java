@@ -21,7 +21,7 @@ import java.util.UUID;
  *
  * <p>Token mang sẵn {@code uid} và {@code roles} để tầng filter dựng được
  * Authentication mà không cần truy DB mỗi request. Đánh đổi: thông tin trong
- * token là ảnh chụp lúc đăng nhập — thu hồi quyền hay khoá tài khoản chỉ có
+ * token là snapshot tại thời điểm đăng nhập — thu hồi quyền hay khoá tài khoản chỉ có
  * hiệu lực sau khi token hết hạn. Giữ {@code accessTokenTtl} ngắn (15 phút)
  * chính là để giới hạn cửa sổ đó.
  */
@@ -51,6 +51,7 @@ public class JwtService {
         return properties.accessTokenTtl();
     }
 
+    // Ký token gồm ID người dùng, email, vai trò, thời điểm phát hành và hết hạn.
     public String generateAccessToken(CustomUserDetails user) {
         Instant now = Instant.now();
         List<String> roles = user.getAuthorities().stream()
@@ -72,7 +73,7 @@ public class JwtService {
     /**
      * Giải mã và xác minh chữ ký.
      *
-     * @throws JwtException nếu token sai chữ ký, hết hạn, sai issuer hoặc méo mó.
+     * @throws JwtException nếu token sai chữ ký, hết hạn, sai issuer hoặc sai định dạng.
      *                      Cố ý để ném ra thay vì trả Optional: caller cần phân
      *                      biệt được token hết hạn với token giả mạo.
      */
@@ -97,14 +98,17 @@ public class JwtService {
         }
     }
 
+    // Xác minh token trước khi lấy email trong trường subject.
     public String extractUsername(String token) {
         return parseClaims(token).getSubject();
     }
 
+    // Xác minh token rồi chuyển claim uid thành UUID.
     public UUID extractUserId(String token) {
         return UUID.fromString(parseClaims(token).get(CLAIM_USER_ID, String.class));
     }
 
+    // Đọc danh sách quyền từ token đã được kiểm tra chữ ký và thời hạn.
     @SuppressWarnings("unchecked")
     public List<String> extractRoles(String token) {
         return parseClaims(token).get(CLAIM_ROLES, List.class);

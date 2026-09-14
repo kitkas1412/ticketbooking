@@ -9,10 +9,8 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 /**
- * Polls the transactional outbox and hands each unpublished row to
- * {@link OutboxEventRelay}, which does the actual publish in its own
- * transaction. A failed publish leaves the row unpublished, so it is simply
- * retried on the next poll.
+ * Định kỳ lấy các bản ghi outbox chưa gửi và chuyển từng bản ghi cho OutboxEventRelay.
+ * Relay xử lý transaction riêng; bản ghi chưa được đánh dấu sẽ được đọc lại ở lượt sau.
  */
 @Component
 public class OutboxEventPublisher {

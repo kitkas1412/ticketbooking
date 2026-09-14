@@ -8,6 +8,9 @@ import me.kitkas1412.persistence.BaseEntity;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+/**
+ * Entity vé, lưu ID sự kiện, số ghế, giá bán và trạng thái.
+ */
 @Entity
 @Getter
 @Setter
@@ -32,6 +35,7 @@ public class Ticket extends BaseEntity {
     @Builder.Default
     private TicketStatus status = TicketStatus.AVAILABLE;
 
+    // Dùng optimistic locking qua @Version để phát hiện các transaction cùng sửa một bản ghi.
     @Version
     @Column(name = "version", nullable = false)
     private Integer version;

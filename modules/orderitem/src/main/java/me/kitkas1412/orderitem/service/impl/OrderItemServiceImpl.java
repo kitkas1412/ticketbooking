@@ -9,6 +9,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+/**
+ * Ghi chi tiết đơn trong transaction để liên kết đơn hàng với vé đã cấp.
+ */
 @Service
 public class OrderItemServiceImpl implements OrderItemService {
 

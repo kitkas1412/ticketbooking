@@ -7,6 +7,9 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Truy cập tài khoản theo UUID hoặc email và kiểm tra email đã được sử dụng.
+ */
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID> {
 

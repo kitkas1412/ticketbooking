@@ -6,12 +6,15 @@ import org.springframework.context.ApplicationEvent;
 
 import java.util.UUID;
 
+/**
+ * Event yêu cầu ghi outbox, gồm aggregate, event type và payload JSON.
+ */
 @Getter
 public class OutboxEventRequestedEvent extends ApplicationEvent {
     private final String aggregateType;
     private final UUID aggregateId;
     private final String eventType;
-    private final String payload; // JSON đã serialize sẵn bởi phía publish
+    private final String payload; // Payload đã được publisher serialize thành JSON.
 
     public OutboxEventRequestedEvent(Object source, String aggregateType, UUID aggregateId,
                                      String eventType, String payload) {

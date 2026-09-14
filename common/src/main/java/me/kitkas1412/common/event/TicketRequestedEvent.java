@@ -7,6 +7,9 @@ import org.springframework.context.ApplicationEvent;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+/**
+ * Yêu cầu tạo danh sách vé cho một sự kiện, kèm số lượng và giá mỗi vé.
+ */
 @Getter
 @Setter
 public class TicketRequestedEvent extends ApplicationEvent {

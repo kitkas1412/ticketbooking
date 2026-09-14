@@ -7,6 +7,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+/**
+ * Chuyển lỗi trùng email thành phản hồi lỗi dành cho API tài khoản.
+ */
 @RestControllerAdvice
 public class UserExceptionHandler {
 

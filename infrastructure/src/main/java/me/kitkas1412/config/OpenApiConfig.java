@@ -10,6 +10,9 @@ import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Khai báo thông tin tài liệu OpenAPI và cơ chế Bearer JWT cho Swagger UI.
+ */
 @Configuration
 public class OpenApiConfig {
 

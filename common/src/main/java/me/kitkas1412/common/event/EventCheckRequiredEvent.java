@@ -1,4 +1,3 @@
-// common/src/main/java/me/kitkas1412/common/event/EventCheckRequiredEvent.java
 package me.kitkas1412.common.event;
 
 import lombok.Getter;
@@ -6,6 +5,10 @@ import lombok.Setter;
 import org.springframework.context.ApplicationEvent;
 import java.util.UUID;
 
+/**
+ * Event nội bộ yêu cầu module event kiểm tra một sự kiện có tồn tại hay không.
+ * Publisher đọc kết quả hoặc exception trên cùng object sau khi listener chạy xong.
+ */
 @Getter
 @Setter
 public class EventCheckRequiredEvent extends ApplicationEvent {

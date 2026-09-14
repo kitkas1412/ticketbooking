@@ -20,6 +20,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Tiếp nhận yêu cầu mua vé tại /api/orders/{eventId}/buy.
+ * Endpoint xem trạng thái đơn bên dưới hiện đang được comment lại.
+ */
 @RestController
 @RequestMapping("/api/orders")
 @Tag(name = "Orders", description = "Tra cứu trạng thái đơn mua vé")

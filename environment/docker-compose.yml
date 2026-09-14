@@ -1,4 +1,7 @@
+# Chạy ba app instance dùng chung DB, Redis và RabbitMQ, với Nginx làm load balancer.
+# Đường dẫn build và tệp Nginx còn theo bố cục cũ; cần đối chiếu trước khi chạy.
 services:
+  # Các app instance kết nối PostgreSQL, Redis và RabbitMQ qua service name trong Compose.
   app1:
     build: ..
     depends_on:
@@ -50,6 +53,7 @@ services:
       RABBITMQ_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_PASS: ${RABBITMQ_DEFAULT_PASS}
 
+  # PostgreSQL lưu tài khoản, sự kiện, vé, đơn hàng và outbox.
   postgres:
     image: postgres:16
     container_name: ticketbookingsystem-postgres
@@ -63,6 +67,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  # Bộ đếm tồn kho nhanh và idempotency key yêu cầu.
   redis:
     image: redis:8.8-alpine
     container_name: ticketbookingsystem-redis
@@ -70,6 +75,7 @@ services:
     ports:
       - "6379:6379"
 
+  # Cổng 5672 dùng cho AMQP; cổng 15672 dùng cho giao diện quản trị.
   rabbitmq:
     image: rabbitmq:4.3.2-management-alpine
     container_name: ticketbookingsystem-rabbitmq
@@ -83,6 +89,7 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
 
+  # Nginx nhận HTTP request và proxy tới các app instance.
   nginx:
     image: nginx:alpine
     volumes:
@@ -94,6 +101,7 @@ services:
       - app2
       - app3
 
+# Giữ dữ liệu PostgreSQL và RabbitMQ khi tạo lại container.
 volumes:
   postgres_data:
     name: ticket-booking-system-postgres-data

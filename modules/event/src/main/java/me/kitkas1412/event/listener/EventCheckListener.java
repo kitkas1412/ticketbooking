@@ -6,6 +6,9 @@ import me.kitkas1412.event.repository.EventRepository;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
+/**
+ * Listener kiểm tra sự kiện có tồn tại hay không rồi ghi kết quả vào event nhận được.
+ */
 @Component
 public class EventCheckListener {
 

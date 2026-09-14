@@ -4,6 +4,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
+/**
+ * Thông tin email và mật khẩu để xác thực tài khoản.
+ */
 @Schema(description = "Thông tin đăng nhập")
 public record LoginRequest(
 

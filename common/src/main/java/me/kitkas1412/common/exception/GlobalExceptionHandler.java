@@ -14,6 +14,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.stream.Collectors;
 
+/**
+ * Xử lý exception từ REST API và trả HTTP status cùng ApiResponse lỗi.
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -40,7 +43,7 @@ public class GlobalExceptionHandler {
     /**
      * Tài khoản tồn tại và đúng mật khẩu nhưng đang bị khoá/vô hiệu hoá.
      *
-     * <p>Trả thông điệp cụ thể là chủ ý: người dùng hợp lệ cần biết vì sao vào
+     * <p>Trả message cụ thể là chủ ý: người dùng hợp lệ cần biết vì sao vào
      * không được. Đánh đổi là lộ ra email đó có tồn tại — chấp nhận được vì
      * muốn tới được nhánh này thì đã phải đưa đúng mật khẩu.
      */
@@ -57,7 +60,7 @@ public class GlobalExceptionHandler {
     /**
      * Sai email hoặc sai mật khẩu.
      *
-     * <p>Thông điệp cố ý gộp chung hai trường hợp: nói rõ "email không tồn tại"
+     * <p>Message cố ý gộp chung hai trường hợp: nói rõ "email không tồn tại"
      * sẽ biến endpoint login thành công cụ dò xem địa chỉ nào đã đăng ký.
      *
      * <p>Nếu thiếu handler này, {@code AuthenticationException} ném từ

@@ -10,20 +10,13 @@ import java.lang.reflect.Type;
 import java.util.Map;
 
 /**
- * Teaches Hibernate how to (de)serialize {@code @JdbcTypeCode(SqlTypes.JSON)}
- * columns — currently {@code OutboxEvent.payload}.
+ * Cấu hình Hibernate đọc và ghi các cột JSON bằng ObjectMapper của Jackson 3.
  *
- * <p>Hibernate auto-detects a JSON {@code FormatMapper} only for Jackson 2
- * ({@code com.fasterxml.jackson}) or a JSON-B implementation. Spring Boot 4
- * ships Jackson 3 ({@code tools.jackson}), which that detection does not
- * recognise, so without this every insert into {@code outbox_events} fails at
- * flush time with "Could not find a FormatMapper for the JSON format" — taking
- * down the entire purchase path.
+ * <p>Hibernate tự tìm JSON FormatMapper cho Jackson 2 hoặc JSON-B;
+ * ứng dụng dùng Jackson 3 nên cần cấu hình FormatMapper cho OutboxEvent.payload.
  *
- * <p>Extending {@link AbstractJsonFormatMapper} rather than implementing
- * {@code FormatMapper} directly matters: it short-circuits {@code String}-typed
- * properties so an already-serialized payload is written through verbatim
- * instead of being JSON-encoded a second time.
+ * <p>AbstractJsonFormatMapper giữ nguyên giá trị của field kiểu String,
+ * tránh serialize lần nữa khi payload đã là chuỗi JSON.
  */
 @Configuration
 public class HibernateJsonConfig implements HibernatePropertiesCustomizer {

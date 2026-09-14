@@ -5,6 +5,10 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
+/**
+ * Publish event yêu cầu đồng bộ lại tồn kho sau khi Spring khởi động.
+ * Listener cần đăng ký đúng event type TicketReconcilerRequestedEvent để nhận yêu cầu này.
+ */
 @Component
 public class TicketInventorySyncOnStartup implements CommandLineRunner {
     private final ApplicationEventPublisher eventPublisher;

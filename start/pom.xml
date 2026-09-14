@@ -1,18 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <!-- Module khởi động ứng dụng, tập hợp các module và đóng gói executable JAR. -->
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>me.kitkas1412</groupId>
         <artifactId>ticketbooking</artifactId>
         <version>0.0.1-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath> <!-- lookup parent from repository -->
+        <relativePath>../pom.xml</relativePath> <!-- Dùng POM cha theo đường dẫn tương đối. -->
     </parent>
 
     <artifactId>start</artifactId>
     <description>Application Bootstrap</description>
 
+    <!-- Các dependency dùng để build và chạy module. -->
     <dependencies>
         <dependency>
             <groupId>me.kitkas1412</groupId>
@@ -111,7 +113,7 @@
             <version>${springdoc.version}</version>
         </dependency>
 
-        <!-- Source: https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt-api -->
+        <!-- Nguồn tham khảo: https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt-api -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-impl</artifactId>
@@ -126,6 +128,7 @@
         </dependency>
     </dependencies>
 
+    <!-- Cấu hình build plugin và annotation processor. -->
     <build>
         <plugins>
             <plugin>

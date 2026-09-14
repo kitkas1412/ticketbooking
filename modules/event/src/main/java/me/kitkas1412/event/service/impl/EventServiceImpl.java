@@ -17,6 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+/**
+ * Lưu sự kiện, phát yêu cầu tạo vé và khởi tạo bộ đếm tồn kho Redis.
+ */
 @Service
 public class EventServiceImpl implements EventService {
 
@@ -43,9 +46,11 @@ public class EventServiceImpl implements EventService {
                 .saleEndAt(request.saleEndAt())
                 .build());
 
+        // Listener chạy đồng bộ, tạo vé trong cùng transaction với sự kiện.
         eventPublisher.publishEvent(new TicketRequestedEvent(
                 this, event.getId(), request.totalTickets(), request.ticketPrice()));
 
+        // Khởi tạo tồn kho Redis; thao tác này không tự rollback cùng JPA transaction.
         redisTemplate.opsForValue().set(TicketInventoryKey.availableTickets(event.getId()), String.valueOf(request.totalTickets()));
         System.out.println(redisTemplate.opsForValue().get(TicketInventoryKey.availableTickets(event.getId())));
 
@@ -62,10 +67,12 @@ public class EventServiceImpl implements EventService {
 
     @Override
     public EventResponse updateEvent(UpdateEventRequest updateEventRequest) {
+        // Chưa triển khai nghiệp vụ cập nhật sự kiện.
         return null;
     }
 
     @Override
+    // Chưa triển khai nghiệp vụ xóa sự kiện.
     public void deleteEvent(UUID eventId) {
 
     }

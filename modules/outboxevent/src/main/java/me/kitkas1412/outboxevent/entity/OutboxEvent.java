@@ -10,6 +10,10 @@ import org.hibernate.type.SqlTypes;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
+/**
+ * Entity lưu message chờ publish qua RabbitMQ theo outbox pattern.
+ * publishedAt là null cho tới khi relay đánh dấu message đã gửi.
+ */
 @Entity
 @Getter
 @Setter
@@ -20,13 +24,13 @@ import java.util.UUID;
 public class OutboxEvent extends BaseEntity {
 
     @Column(name = "aggregate_type", nullable = false, length = 50)
-    private String aggregateType; // 'ORDER' | 'TICKET' | 'EVENT'
+    private String aggregateType; // Aggregate type, ví dụ ORDER, TICKET hoặc EVENT.
 
     @Column(name = "aggregate_id", nullable = false)
     private UUID aggregateId;
 
     @Column(name = "event_type", nullable = false, length = 50)
-    private String eventType; // 'OrderConfirmed' | 'TicketSold' ...
+    private String eventType; // Event type dùng để route message, ví dụ TicketBuyRequested.
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb", nullable = false)

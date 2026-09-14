@@ -22,6 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.EnumSet;
 import java.util.List;
 
+/**
+ * Hash mật khẩu khi đăng ký, xác thực đăng nhập qua Spring Security và cấp JWT.
+ */
 @Service
 public class AuthServiceImpl implements AuthService {
 
@@ -44,10 +47,10 @@ public class AuthServiceImpl implements AuthService {
      * Luôn gán {@link Role#USER}. Vai trò không đến từ request — xem javadoc
      * {@link RegisterRequest}.
      *
-     * <p>Kiểm {@code existsByEmail} trước chỉ để trả lỗi đẹp trong trường hợp
-     * thường; nó không phải hàng rào thật vì hai request đồng thời đều có thể
-     * vượt qua. Hàng rào thật là unique constraint {@code uk_users_email} dưới
-     * DB, và đó là lý do phải bắt {@code DataIntegrityViolationException}.
+     * <p>Kiểm tra {@code existsByEmail} giúp báo lỗi sớm nhưng không ngăn được
+     * race condition: hai request đồng thời vẫn có thể cùng vượt qua bước này.
+     * Unique constraint {@code uk_users_email} trong DB mới đảm bảo email không trùng,
+     * nên cần bắt {@code DataIntegrityViolationException} khi lưu.
      */
     @Override
     @Transactional
@@ -69,7 +72,7 @@ public class AuthServiceImpl implements AuthService {
         try {
             userRepository.saveAndFlush(user);
         } catch (DataIntegrityViolationException e) {
-            // Thua cuộc đua với một request đăng ký cùng email.
+            // Một request khác đã đăng ký email này trước khi save hoàn tất (race condition).
             throw new EmailAlreadyExistsException("Email đã được sử dụng: " + email);
         }
 

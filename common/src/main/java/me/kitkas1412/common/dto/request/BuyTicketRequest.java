@@ -2,6 +2,10 @@ package me.kitkas1412.common.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
+/**
+ * Request đặt một vé; idempotency key dùng để nhận diện request gửi lại.
+ * Service hiện trả Optional.empty() nếu key đã tồn tại trong Redis.
+ */
 @Schema(description = "Yêu cầu mua vé")
 public record BuyTicketRequest(
 

@@ -15,6 +15,10 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Nhận yêu cầu mua vé từ RabbitMQ để cấp vé và cập nhật kết quả đơn hàng.
+ * Các lời gọi vẫn truyền entity theo mô hình cũ; cần cập nhật để khớp service nhận UUID.
+ */
 @Component
 public class TicketPurchaseConsumer {
 
@@ -36,6 +40,7 @@ public class TicketPurchaseConsumer {
         Order order = orderRepository.findById(message.orderId())
                 .orElseThrow(() -> new IllegalStateException("Không tìm thấy Order: " + message.orderId()));
 
+        // Bỏ qua message gửi lại nếu đơn đã xử lý xong; bước này không ngăn hai consumer chạy đồng thời.
         if (order.getStatus() != Order.OrderStatus.PENDING) {
             return;
         }
@@ -47,6 +52,7 @@ public class TicketPurchaseConsumer {
             orderItemService.createOrderItem(order, ticket, ticket.getPrice());
             order.setStatus(Order.OrderStatus.CONFIRMED);
             orderRepository.save(order);
+        // Không lấy được vé thì chuyển đơn sang FAILED và tăng lại tồn kho Redis.
         } catch (ResourceNotFoundException e) {
             order.setStatus(Order.OrderStatus.FAILED);
             orderRepository.save(order);

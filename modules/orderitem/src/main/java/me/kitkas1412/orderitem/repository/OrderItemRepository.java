@@ -7,6 +7,9 @@ import org.springframework.stereotype.Repository;
 
 import java.util.UUID;
 
+/**
+ * Lưu và truy vấn chi tiết đơn hàng theo UUID.
+ */
 @Repository
 public interface OrderItemRepository extends JpaRepository<OrderItem, UUID> {
 }

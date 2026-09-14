@@ -7,6 +7,9 @@ import me.kitkas1412.persistence.BaseEntity;
 
 import java.time.OffsetDateTime;
 
+/**
+ * Entity lưu thông tin sự kiện: tổng số vé, thời gian mở bán và trạng thái.
+ */
 @Entity
 @Getter
 @Setter
@@ -36,6 +39,7 @@ public class Event extends BaseEntity {
     @Builder.Default
     private EventStatus status = EventStatus.DRAFT;
 
+    // Dùng optimistic locking qua @Version để phát hiện các transaction cùng sửa một bản ghi.
     @Version
     @Column(name = "version")
     private Integer version;

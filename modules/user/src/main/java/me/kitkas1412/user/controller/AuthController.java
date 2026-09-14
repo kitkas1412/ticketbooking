@@ -17,6 +17,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Cung cấp API đăng ký và đăng nhập, trả access token cho client.
+ */
 // Lưu ý khi đọc file: annotation @ApiResponse của Swagger trùng tên với DTO
 // ApiResponse của dự án. DTO xuất hiện trong mọi chữ ký hàm nên nó giữ import,
 // còn annotation phải viết đầy đủ package — Java không có alias import.

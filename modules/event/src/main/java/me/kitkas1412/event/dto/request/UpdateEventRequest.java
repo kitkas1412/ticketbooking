@@ -4,6 +4,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.OffsetDateTime;
 
+/**
+ * Dữ liệu dự kiến dùng để thay đổi thông tin, thời gian bán và trạng thái sự kiện.
+ */
 @Schema(description = "Dữ liệu cập nhật sự kiện")
 public record UpdateEventRequest(
 

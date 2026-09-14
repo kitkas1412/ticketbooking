@@ -2,6 +2,9 @@ package me.kitkas1412.common.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
+/**
+ * Chi tiết lỗi API gồm HTTP status, tiêu đề và thông báo lỗi.
+ */
 @Schema(description = "Chi tiết lỗi trả về trong ApiResponse")
 public record ErrorDetail(
 

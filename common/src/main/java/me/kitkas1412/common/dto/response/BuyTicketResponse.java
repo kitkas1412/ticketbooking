@@ -5,6 +5,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+/**
+ * DTO chứa thông tin vé và giá mua khi đặt vé thành công.
+ */
 @Schema(description = "Thông tin vé đã mua, chỉ trả về khi đơn hàng ở trạng thái CONFIRMED")
 public record BuyTicketResponse(
 

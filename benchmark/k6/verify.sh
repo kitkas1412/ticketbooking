@@ -1,14 +1,9 @@
 #!/usr/bin/env bash
-#
-# Post-run verification for k6/flash-sale.js.
-#
-# The k6 summary only proves the *admission gate* held. This script checks the
-# durable state that actually matters: that Postgres never sold more tickets than
-# exist, never sold the same ticket twice, drained the outbox, and that the Redis
-# counter agrees with the database.
-#
-# Usage: ./k6/verify.sh [eventId]
-#        (with no argument, uses the most recently created k6 event)
+# Kiểm tra dữ liệu đã lưu trong PostgreSQL và Redis sau khi chạy flash-sale.js.
+# Đối chiếu vé bán, đơn hàng, idempotency key, outbox và bộ đếm Redis.
+# Cách gọi từ thư mục gốc: benchmark/k6/verify.sh [eventId].
+# Không truyền ID thì chọn sự kiện k6 được tạo gần nhất.
+# Các đường dẫn Compose và thư mục gốc bên dưới còn cần đồng bộ với bố cục mới.
 
 set -euo pipefail
 
@@ -25,10 +20,12 @@ fi
 DB_USER="${POSTGRES_USER:?POSTGRES_USER is not set (populate .env)}"
 DB_NAME="${POSTGRES_DB:?POSTGRES_DB is not set (populate .env)}"
 
+# Thực thi truy vấn PostgreSQL trong dịch vụ Compose.
 psql_q() {
   docker compose exec -T postgres psql -U "$DB_USER" -d "$DB_NAME" -tAc "$1"
 }
 
+# Gửi lệnh Redis qua dịch vụ Compose.
 redis_q() {
   docker compose exec -T redis redis-cli "$@"
 }
@@ -43,8 +40,7 @@ if [[ -z "$EVENT_ID" ]]; then
   echo "Using most recent k6 event: $EVENT_ID"
 fi
 
-# Async settling is driven by a 2s outbox poll plus the consumer, so give the
-# tail of the burst a moment to drain before snapshotting.
+# Chờ tác vụ outbox và consumer xử lý phần yêu cầu còn lại trước khi đọc dữ liệu.
 SETTLE_WAIT="${SETTLE_WAIT:-10}"
 echo "Waiting ${SETTLE_WAIT}s for the async pipeline to drain..."
 sleep "$SETTLE_WAIT"
@@ -59,8 +55,8 @@ PENDING=$(psql_q   "SELECT count(*) FROM orders WHERE event_id = '$EVENT_ID' AND
 FAILED=$(psql_q    "SELECT count(*) FROM orders WHERE event_id = '$EVENT_ID' AND status = 'FAILED';")
 ORDERS=$(psql_q    "SELECT count(*) FROM orders WHERE event_id = '$EVENT_ID';")
 
-# Same ticket handed to two different orders. order_item.ticket_id is UNIQUE so
-# this should be structurally impossible -- checked anyway, cheaply.
+# Kiểm tra một vé có xuất hiện ở nhiều chi tiết đơn hay không.
+# Ràng buộc UNIQUE trên order_item.ticket_id cũng bảo vệ điều kiện này.
 DOUBLE_SOLD=$(psql_q "
   SELECT count(*) FROM (
     SELECT oi.ticket_id FROM order_item oi
@@ -69,8 +65,7 @@ DOUBLE_SOLD=$(psql_q "
     GROUP BY oi.ticket_id HAVING count(*) > 1
   ) d;")
 
-# A CONFIRMED order with no reserved ticket, or an order_item with no confirmed
-# order -- either would mean the consumer's transaction is not actually atomic.
+# Tìm đơn CONFIRMED chưa có chi tiết vé tương ứng; kết quả khác 0 cho thấy dữ liệu không nhất quán.
 ORPHAN_ORDERS=$(psql_q "
   SELECT count(*) FROM orders o
   WHERE o.event_id = '$EVENT_ID' AND o.status = 'CONFIRMED'
@@ -86,13 +81,12 @@ OUTBOX_TOTAL=$(psql_q     "SELECT count(*) FROM outbox_events WHERE aggregate_ty
 OUTBOX_UNSENT=$(psql_q    "SELECT count(*) FROM outbox_events WHERE published_at IS NULL;")
 
 REDIS_COUNTER=$(redis_q GET "event:$EVENT_ID:tickets_available" | tr -d '\r')
-# Normalise to a number so the numeric comparison below cannot blow up; an unset
-# key is a real failure (the reconciler should have repopulated it), not a skip.
+# Chuẩn hóa bộ đếm về số để so sánh; khóa bị thiếu hoặc không hợp lệ được coi là lỗi.
 [[ "$REDIS_COUNTER" =~ ^-?[0-9]+$ ]] || REDIS_COUNTER=-1
 
 pass=0
 fail=0
-check() { # check <condition-result> <label>
+check() { # Nhận kết quả điều kiện và nhãn hiển thị.
   if [[ "$1" == "ok" ]]; then
     printf '  \033[32mPASS\033[0m  %s\n' "$2"; pass=$((pass + 1))
   else

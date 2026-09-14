@@ -6,6 +6,9 @@ import me.kitkas1412.event.entity.Event;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
+/**
+ * Response DTO chứa thông tin sự kiện, tách khỏi JPA entity.
+ */
 @Schema(description = "Thông tin sự kiện")
 public record EventResponse(
 

@@ -16,18 +16,14 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
- * Publishes a single outbox row to RabbitMQ and marks it published.
+ * Gửi từng bản ghi outbox tới RabbitMQ và ghi thời điểm gửi.
  *
- * <p>This lives in its own bean on purpose. It used to be a method on
- * {@link OutboxEventPublisher} called directly from the scheduled poller, which
- * meant the call never went through the Spring proxy and {@code @Transactional}
- * did nothing: the {@code publishedAt} write was silently discarded, the poller
- * kept re-reading the same oldest rows forever, and no event past the first page
- * was ever delivered. Going through a separate bean makes the proxy — and so the
- * transaction — real.
+ * <p>Tách thành bean riêng để lời gọi từ OutboxEventPublisher đi qua proxy của Spring,
+ * nhờ đó @Transactional có hiệu lực. Gọi trực tiếp trong cùng bean sẽ bỏ qua proxy.
  *
- * <p>Each event gets its own transaction so one undeliverable row cannot roll
- * back the rest of the batch.
+ * <p>Mỗi bản ghi chạy trong transaction riêng để cập nhật trạng thái gửi độc lập.
+ * Gửi message qua RabbitMQ và commit DB không thuộc cùng một atomic transaction;
+ * message có thể được gửi lại nếu commit thất bại sau khi đã gửi.
  */
 @Component
 public class OutboxEventRelay {
@@ -53,6 +49,7 @@ public class OutboxEventRelay {
 
         try {
             route(event);
+            // Đánh dấu sau khi lệnh gửi trả về; đoạn này chưa chờ publisher confirm từ broker.
             event.setPublishedAt(OffsetDateTime.now());
         } catch (Exception e) {
             log.error("Không publish được OutboxEvent {} (eventType={})", event.getId(), event.getEventType(), e);

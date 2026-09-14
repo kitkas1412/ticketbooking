@@ -8,6 +8,9 @@ import me.kitkas1412.persistence.BaseEntity;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+/**
+ * Chi tiết đơn lưu ID đơn, ID vé và giá tại thời điểm mua; mỗi vé chỉ thuộc một chi tiết đơn.
+ */
 @Entity
 @Getter
 @Setter

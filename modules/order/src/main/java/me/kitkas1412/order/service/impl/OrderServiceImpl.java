@@ -25,6 +25,9 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Trừ tồn kho Redis để giữ chỗ, sau đó tạo đơn PENDING và ghi outbox trong cùng transaction.
+ */
 @Service
 public class OrderServiceImpl implements OrderService {
 
@@ -48,11 +51,14 @@ public class OrderServiceImpl implements OrderService {
         String key = TicketInventoryKey.availableTickets(eventId);
         String idempotencyKey = TicketInventoryKey.idempotencyKey(request.idempotencyKey());
 
+        // Tạo idempotency key với TTL 5 phút; key đã có thì trả Optional.empty().
         if (!redisTemplate.opsForValue().setIfAbsent(idempotencyKey, "1", Duration.ofMillis(300000))){
             return Optional.empty();
         }
 
 
+        // DECR là thao tác atomic trên Redis; bộ đếm âm nghĩa là không còn vé để giữ.
+        // Tăng lại bộ đếm rồi kiểm tra lỗi do sự kiện không tồn tại hay do hết vé.
         if(redisTemplate.opsForValue().decrement(key) < 0){
             redisTemplate.opsForValue().increment(key);
 
@@ -68,11 +74,9 @@ public class OrderServiceImpl implements OrderService {
             throw new NoTicketAvailableException("Hết vé!");
         }
 
-        // Inventory is now claimed in Redis but nothing is durable yet. Hand the
-        // compensation to the transaction manager instead of a try/catch: this
-        // method is @Transactional, so the flush and commit happen *after* it
-        // returns and a failure there would never reach a catch block here --
-        // leaking the claimed ticket until the reconciler happens to run.
+        // Redis đã trừ tồn kho nhưng dữ liệu đơn chưa được commit.
+        // Đăng ký callback hoàn tồn kho khi transaction kết thúc để xử lý cả lỗi flush/commit
+        // xảy ra sau khi method trả về; try/catch ở đây không bắt được các lỗi đó.
         registerInventoryCompensation(key, idempotencyKey);
 
         Order order = orderRepository.save(Order.builder()
@@ -80,6 +84,7 @@ public class OrderServiceImpl implements OrderService {
                 .event_id(eventId)
                 .build());
 
+        // Lưu outbox cùng transaction với đơn; outbox publisher gửi message qua RabbitMQ sau đó.
         eventPublisher.publishEvent(new OutboxEventRequestedEvent(
                 this,
                 "ORDER",
@@ -91,12 +96,8 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * Gives back the Redis ticket claim if the surrounding transaction does not
-     * commit, whether it failed inside the method body or during commit itself.
-     *
-     * <p>The idempotency key is released alongside it: the key is claimed before
-     * any durable write, so leaving it behind after a rollback would make the
-     * client's retry look like a duplicate and silently drop the purchase.
+     * Hoàn tồn kho nếu transaction không commit thành công, kể cả lỗi ở bước commit.
+     * Xóa cả idempotency key để client có thể retry khi đơn chưa được commit vào DB.
      */
     private void registerInventoryCompensation(String inventoryKey, String idempotencyKey) {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {

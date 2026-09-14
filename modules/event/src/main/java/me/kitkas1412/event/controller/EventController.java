@@ -13,6 +13,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+/**
+ * Cung cấp API tạo và xem sự kiện; phần nghiệp vụ do EventServiceImpl xử lý.
+ */
 @RestController
 @RequestMapping("/api/events")
 @Tag(name = "Events", description = "Tạo sự kiện và đặt mua vé")

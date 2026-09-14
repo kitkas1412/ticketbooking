@@ -23,6 +23,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Cấu hình JWT authentication, password encoder, phân quyền URL và xử lý lỗi bảo mật.
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity

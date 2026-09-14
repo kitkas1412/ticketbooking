@@ -1,54 +1,42 @@
-// Flash-sale load test for the Ticket Booking System.
-//
-// Fires a burst of concurrent purchase requests at an event that has far fewer
-// tickets than there are requests, and asserts the core invariant of the system:
-//
-//     number of 202 Accepted responses  <=  number of tickets that exist
-//
-// The Redis DECR admission gate is the only thing standing between the burst and
-// an oversell, so this ratio is the whole point of the test. Everything that is
-// not admitted must be cleanly rejected with 409 (sold out) -- never a 5xx, and
-// never a silent success.
-//
-// Run:  k6 run k6/flash-sale.js
-// Then: ./k6/verify.sh <eventId>     (checks the durable Postgres state)
+// Kiểm thử tải đợt mở bán vé với số yêu cầu đồng thời lớn hơn số vé.
+// Điều kiện cần kiểm tra: số phản hồi 202 không vượt quá tổng số vé phát hành.
+// Chạy từ thư mục gốc: k6 run benchmark/k6/flash-sale.js
+// Sau đó đối chiếu dữ liệu bằng benchmark/k6/verify.sh <eventId>.
+// Kịch bản còn dùng import và đường dẫn API cũ; cần đồng bộ trước khi chạy.
 
 import http from 'benchmark/k6/http';
 import { check, sleep } from 'k6';
 import { Counter, Trend } from 'benchmark/k6/metrics';
 
-// ---------------------------------------------------------------- config ----
+// Cấu hình tải và địa chỉ ứng dụng.
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost';
 const TOTAL_TICKETS = Number(__ENV.TOTAL_TICKETS || 500);
 const REQUESTS = Number(__ENV.REQUESTS || 5000);
 const VUS = Number(__ENV.VUS || 300);
 
-// Fraction of requests that replay the VU's previous idempotency key, exercising
-// the Redis SETIFABSENT dedupe path. These must come back 200 with a null body.
+// Tỷ lệ request dùng lại idempotency key của virtual user (VU) để kiểm tra deduplication.
+// Kỳ vọng HTTP 200 với trường data bằng null.
 const DUP_RATE = Number(__ENV.DUP_RATE || 0.1);
 
-// Fraction of accepted orders that get polled to completion, to measure how long
-// the outbox -> RabbitMQ -> consumer path takes to settle an order. Kept low so
-// the polling traffic does not distort the burst itself.
+// Tỷ lệ đơn được truy vấn tới khi hoàn tất để đo độ trễ outbox → RabbitMQ → consumer.
+// Giữ tỷ lệ thấp để lưu lượng tra cứu ít ảnh hưởng tới đợt đặt vé.
 const PROBE_RATE = Number(__ENV.PROBE_RATE || 0.05);
 const POLL_TIMEOUT_MS = Number(__ENV.POLL_TIMEOUT_MS || 20000);
 const POLL_INTERVAL_S = Number(__ENV.POLL_INTERVAL_S || 0.25);
 
 const RUN_ID = __ENV.RUN_ID || `k6-${Date.now()}`;
 
-// 409 (sold out) and 404 are correct, expected outcomes here, not failures.
-// Without this k6 would fold them into http_req_failed and the metric would be
-// meaningless for this test.
+// Chấp nhận 404 và 409 như kết quả dự kiến để không tính vào chỉ số lỗi HTTP.
 http.setResponseCallback(http.expectedStatuses(200, 201, 202, 404, 409));
 
-// --------------------------------------------------------------- metrics ----
+// Các bộ đếm kết quả và phân bố độ trễ.
 
-const buyAccepted = new Counter('buy_accepted');    // 202 -> inventory claimed
-const buyDuplicate = new Counter('buy_duplicate');  // 200 -> idempotent replay
-const buySoldOut = new Counter('buy_sold_out');     // 409 -> cleanly rejected
+const buyAccepted = new Counter('buy_accepted');    // 202: đã giữ một suất trong tồn kho
+const buyDuplicate = new Counter('buy_duplicate');  // 200: gửi lại khóa đã dùng
+const buySoldOut = new Counter('buy_sold_out');     // 409: từ chối do hết vé
 const buyNotFound = new Counter('buy_not_found');   // 404
-const buyUnexpected = new Counter('buy_unexpected'); // anything else == a bug
+const buyUnexpected = new Counter('buy_unexpected'); // mã khác: ngoài kết quả dự kiến
 
 const buyLatency = new Trend('buy_latency', true);
 const settleLatency = new Trend('order_settle_ms', true);
@@ -62,23 +50,22 @@ export const options = {
     flash_sale: {
       executor: 'shared-iterations',
       vus: VUS,
-      iterations: REQUESTS, // deterministic total, so the invariant math is exact
+      iterations: REQUESTS, // cố định tổng lượt gọi để đối chiếu số lượng
       maxDuration: '5m',
     },
   },
   thresholds: {
-    // Hard failures: any unexpected status, or any request the server errored on.
+    // Lỗi khi có mã phản hồi ngoài dự kiến hoặc yêu cầu HTTP thất bại.
     buy_unexpected: ['count == 0'],
     http_req_failed: ['rate == 0'],
-    // The admission gate must never hand out more claims than there are tickets.
+    // Số suất được tiếp nhận không được vượt quá tồn kho ban đầu.
     buy_accepted: [`count <= ${TOTAL_TICKETS}`],
-    // Sanity ceiling on the hot path; it does no synchronous DB write beyond the
-    // order + outbox insert, so this should hold comfortably.
+    // Ngưỡng độ trễ p95 của bước tiếp nhận; thao tác cấp vé được xử lý bất đồng bộ.
     'buy_latency': ['p(95) < 1000'],
   },
 };
 
-// ----------------------------------------------------------------- setup ----
+// Chuẩn bị sự kiện dùng cho toàn bộ lượt kiểm thử.
 
 export function setup() {
   if (__ENV.EVENT_ID) {
@@ -98,7 +85,7 @@ export function setup() {
 
   const res = http.post(`${BASE_URL}/api/events`, JSON.stringify(payload), {
     headers: { 'Content-Type': 'application/json' },
-    timeout: '120s', // creating N ticket rows is a single big insert batch
+    timeout: '120s', // chờ tạo danh sách vé ban đầu
   });
 
   if (res.status !== 201) {
@@ -112,9 +99,9 @@ export function setup() {
   return { eventId, totalTickets: TOTAL_TICKETS };
 }
 
-// ------------------------------------------------------------------ test ----
+// Gửi request mua vé.
 
-// Per-VU state: k6 gives each VU its own module instance, so this is not shared.
+// Mỗi VU có state riêng; lastKey không được chia sẻ giữa các VU.
 let lastKey = null;
 
 export default function (data) {
@@ -147,8 +134,7 @@ export default function (data) {
       break;
     }
     case 200:
-      // Idempotent replay: the key was already claimed, so the server does
-      // nothing and returns an empty envelope.
+      // Idempotency key đã tồn tại nên server bỏ qua request và trả data=null.
       buyDuplicate.add(1);
       check(res, {
         'duplicate returns no data': (r) => r.json('data') === null,
@@ -167,12 +153,9 @@ export default function (data) {
   }
 }
 
-// Polls GET /api/orders/:id until the async consumer settles the order.
-//
-// Note the response shape switches once the order is CONFIRMED: the endpoint
-// then returns the *ticket* projection, whose `status` field is the TicketStatus
-// (SOLD), not the OrderStatus. The presence of `ticketId` is what actually marks
-// a settled-successful order.
+// Poll trạng thái đơn tới khi xử lý xong hoặc timeout.
+// Kịch bản kỳ vọng đơn thành công trả DTO vé: ticketId là dấu hiệu hoàn tất,
+// còn status khi đó là trạng thái vé SOLD. API tra cứu hiện đang bị comment trong mã Java.
 function pollUntilSettled(orderId) {
   const startedAt = Date.now();
   const deadline = startedAt + POLL_TIMEOUT_MS;
@@ -208,7 +191,7 @@ function pollUntilSettled(orderId) {
   settleTimeout.add(1);
 }
 
-// --------------------------------------------------------------- summary ----
+// Tổng hợp chỉ số và kết quả các điều kiện kiểm tra.
 
 export function handleSummary(data) {
   const n = (metric) => (data.metrics[metric] ? data.metrics[metric].values.count : 0);

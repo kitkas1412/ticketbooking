@@ -5,6 +5,9 @@ import me.kitkas1412.event.entity.Event;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+/**
+ * Map Event sang response DTO, đổi id thành eventId và status thành eventStatus.
+ */
 @Mapper(componentModel = "spring")
 public interface EventMapper {
 

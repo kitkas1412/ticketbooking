@@ -10,6 +10,9 @@ import lombok.experimental.SuperBuilder;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
+/**
+ * Base entity chứa UUID, createdAt và updatedAt dùng chung cho các JPA entity.
+ */
 @Getter
 @Setter
 @NoArgsConstructor

@@ -8,6 +8,9 @@ import me.kitkas1412.persistence.BaseEntity;
 import java.util.EnumSet;
 import java.util.Set;
 
+/**
+ * Entity tài khoản, lưu email, password hash, role và trạng thái.
+ */
 @Entity
 @Getter
 @Setter

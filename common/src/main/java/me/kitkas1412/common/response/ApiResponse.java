@@ -4,6 +4,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Map;
 
+/**
+ * Response wrapper dùng chung cho API, gồm data, error và metadata.
+ */
 @Schema(description = "Khung bao dùng chung cho mọi response. Thành công thì `data` có giá trị "
         + "và `error` null; thất bại thì ngược lại.")
 public record ApiResponse<T>(

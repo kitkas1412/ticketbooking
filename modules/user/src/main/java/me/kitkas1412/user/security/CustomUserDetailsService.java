@@ -8,6 +8,9 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Nạp tài khoản theo email đã chuẩn hóa để Spring Security kiểm tra thông tin đăng nhập.
+ */
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
 

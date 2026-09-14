@@ -5,6 +5,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
+/**
+ * Dữ liệu khởi tạo sự kiện, thời gian mở bán và danh sách vé ban đầu.
+ */
 @Schema(description = "Dữ liệu tạo sự kiện mới")
 public record CreateEventRequest(
 

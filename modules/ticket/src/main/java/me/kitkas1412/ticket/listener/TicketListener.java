@@ -11,6 +11,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+/**
+ * Nhận sự kiện nội bộ để tạo vé và gọi đối soát tồn kho.
+ */
 @Component
 public class TicketListener {
 
@@ -24,6 +27,7 @@ public class TicketListener {
 
     @EventListener
     public void handle(TicketRequestedEvent event) {
+        // Đánh số ghế từ 1 đến tổng số vé, cùng giá khởi tạo của sự kiện.
         List<Ticket> tickets = IntStream.rangeClosed(1, event.getTotalTickets())
                 .mapToObj(seatCode -> Ticket.builder()
                         .eventId(event.getEventId())
@@ -35,6 +39,7 @@ public class TicketListener {
         ticketRepository.saveAll(tickets);
     }
 
+    // Hiện phương thức nhận TicketRequestedEvent, khác tín hiệu đối soát phát lúc khởi động.
     @EventListener
     public void handleReconciler(TicketRequestedEvent event){
         reconciler.reconcileAll();
