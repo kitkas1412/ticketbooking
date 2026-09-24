@@ -1,0 +1,16 @@
+# Chỉ gửi mã nguồn và cấu hình build vào Docker build context.
+**/target/
+.git/
+.github/
+.idea/
+.vscode/
+.env
+.env.*
+**/*.md
+benchmark/
+postman/
+environment/
+nginx/
+
+# Cấu hình local chứa secret thật, không bao giờ đưa vào image.
+**/application-local.yaml

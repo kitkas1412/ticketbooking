@@ -166,12 +166,20 @@ A ready-to-use request collection is available at [`postman/ticketbooking.postma
 
    RABBITMQ_DEFAULT_USER=
    RABBITMQ_DEFAULT_PASS=
+
+   JWT_SECRET=   # openssl rand -base64 64
    ```
 
-2. Start the full stack (3 app instances behind Nginx, Postgres, Redis, RabbitMQ):
+2. Start the full stack (3 app instances behind Nginx, Postgres, Redis, RabbitMQ) from the repository root:
 
    ```bash
-   docker compose up --build
+   docker compose --env-file .env -f environment/docker-compose.yml up --build
+   ```
+
+   Prebuilt images are published to GHCR on every merge to `main` (`latest`, `sha-<commit>`) and on `v*` tags:
+
+   ```bash
+   docker pull ghcr.io/kitkas1412/ticketbooking:latest
    ```
 
 3. The API is available at `http://localhost` (Nginx, port 80), load-balanced across `app1`/`app2`/`app3`.
