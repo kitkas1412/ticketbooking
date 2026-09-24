@@ -1,0 +1,88 @@
+name: Telegram Notify
+
+# Gửi thông báo Telegram khi repo có thay đổi.
+# Cần 2 repository secrets: TELEGRAM_BOT_TOKEN và TELEGRAM_CHAT_ID.
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["**"]
+  # pull_request_target để PR từ fork vẫn đọc được secrets.
+  # Workflow không checkout code của PR nên an toàn.
+  pull_request_target:
+    types: [opened, reopened, closed, ready_for_review]
+  issues:
+    types: [opened, closed, reopened]
+  release:
+    types: [published]
+
+permissions: {}
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Send Telegram message
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_THREAD_ID: ${{ secrets.TELEGRAM_THREAD_ID }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "::warning::TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID chưa được cấu hình, bỏ qua."
+            exit 0
+          fi
+
+          # Dựng nội dung trực tiếp từ payload bằng jq để tránh script injection
+          # từ commit message / tiêu đề PR.
+          TEXT=$(jq -r '
+            def first_line: split("\n")[0];
+            def trunc(n): if length > n then .[0:n] + "…" else . end;
+            .repository.full_name as $repo
+            | if env.EVENT == "push" then
+                (.ref | sub("^refs/(heads|tags)/"; "")) as $ref
+                | if .deleted then
+                    "🗑 \($repo)\n\(.sender.login) đã xoá \($ref)"
+                  elif (.ref | startswith("refs/tags/")) then
+                    "🏷 \($repo)\n\(.sender.login) tạo tag \($ref)\n\n\(.repository.html_url)/tree/\($ref)"
+                  else
+                    (.commits | length) as $n
+                    | "📦 \($repo) · \($ref)\n"
+                      + "\(.pusher.name) đã push \($n) commit"
+                      + (if .forced then " (force push ⚠️)" else "" end)
+                      + "\n\n"
+                      + ([.commits[-10:][] | "• \(.id[0:7]) \(.message | first_line | trunc(100)) — \(.author.name)"] | join("\n"))
+                      + (if $n > 10 then "\n… và \($n - 10) commit khác" else "" end)
+                      + "\n\n\(.compare)"
+                  end
+              elif env.EVENT == "pull_request_target" then
+                .pull_request as $pr
+                | (if .action == "closed" then (if $pr.merged then "✅ đã merge" else "❌ đã đóng" end)
+                   elif .action == "opened" then "🆕 mới mở"
+                   elif .action == "reopened" then "🔄 mở lại"
+                   elif .action == "ready_for_review" then "👀 sẵn sàng review"
+                   else .action end) as $status
+                | "🔀 \($repo)\nPR #\($pr.number) \($status) bởi \(.sender.login)\n"
+                  + "\($pr.title | trunc(200))\n\($pr.head.label) → \($pr.base.ref)\n\n\($pr.html_url)"
+              elif env.EVENT == "issues" then
+                "🐞 \($repo)\nIssue #\(.issue.number) \(.action) bởi \(.sender.login)\n"
+                + "\(.issue.title | trunc(200))\n\n\(.issue.html_url)"
+              elif env.EVENT == "release" then
+                "🚀 \($repo)\nRelease \(.release.tag_name) \(.release.name // "" )\n\n\(.release.html_url)"
+              else
+                "ℹ️ \($repo): \(env.EVENT)"
+              end
+          ' "$GITHUB_EVENT_PATH")
+
+          jq -n \
+            --arg chat_id "$TELEGRAM_CHAT_ID" \
+            --arg thread_id "$TELEGRAM_THREAD_ID" \
+            --arg text "$TEXT" \
+            '{chat_id: $chat_id, text: ($text | .[0:4000]), disable_web_page_preview: true}
+             + (if $thread_id != "" then {message_thread_id: ($thread_id | tonumber)} else {} end)' \
+          | curl -sS --fail-with-body \
+              -H "Content-Type: application/json" \
+              -d @- \
+              "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage"
