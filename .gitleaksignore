@@ -1,0 +1,5 @@
+# Finding gitleaks đã xác nhận là false positive, mỗi dòng một fingerprint:
+# <commit>:<file>:<rule>:<line> (lấy từ report hoặc log của job Secret Scan).
+
+# Khoá JWT giả chỉ dùng cho integration test (AbstractIntegrationTest).
+fda2eb20bdf8a64b5b4e27e9accf1e64c1db265b:start/src/test/java/me/kitkas1412/ticketbooking/AbstractIntegrationTest.java:generic-api-key:36

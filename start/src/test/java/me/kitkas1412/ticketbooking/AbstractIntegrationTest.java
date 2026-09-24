@@ -33,7 +33,7 @@ import java.util.UUID;
         "POSTGRES_USER=test",
         "POSTGRES_PASS=test",
         // Khoá chỉ dùng cho test (base64 của 64 byte), không dùng ở môi trường thật.
-        "JWT_SECRET=aW50ZWdyYXRpb24tdGVzdC1vbmx5LXNlY3JldC1ub3QtZm9yLXByb2R1Y3Rpb24tdXNlLTY0LWJ5dGVzLWxvbmc=",
+        "JWT_SECRET=aW50ZWdyYXRpb24tdGVzdC1vbmx5LXNlY3JldC1ub3QtZm9yLXByb2R1Y3Rpb24tdXNlLTY0LWJ5dGVzLWxvbmc=", // gitleaks:allow
         "spring.jpa.show-sql=false"
 })
 @AutoConfigureMockMvc
