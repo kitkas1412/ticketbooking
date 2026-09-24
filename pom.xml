@@ -41,6 +41,15 @@
         <module>modules/outboxevent</module>
     </modules>
 
+    <!-- Dependency test dùng chung: mọi module con kế thừa JUnit 5, Mockito, AssertJ và spring-test. -->
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
     <name>ticketbooking</name>
     <description>ticketbooking</description>
     <url />

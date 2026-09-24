@@ -1,13 +1,12 @@
 package me.kitkas1412.outboxevent.mq;
 
+import me.kitkas1412.cache.TicketInventoryKey;
 import me.kitkas1412.common.exception.ResourceNotFoundException;
 import me.kitkas1412.config.RabbitMQConfig;
-import me.kitkas1412.event.entity.Event;
 import me.kitkas1412.mq.BuyTicketMessage;
 import me.kitkas1412.order.entity.Order;
 import me.kitkas1412.order.repository.OrderRepository;
 import me.kitkas1412.orderitem.service.OrderItemService;
-import me.kitkas1412.ticket.cache.TicketInventoryKey;
 import me.kitkas1412.ticket.entity.Ticket;
 import me.kitkas1412.ticket.service.TicketService;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -17,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Nhận yêu cầu mua vé từ RabbitMQ để cấp vé và cập nhật kết quả đơn hàng.
- * Các lời gọi vẫn truyền entity theo mô hình cũ; cần cập nhật để khớp service nhận UUID.
  */
 @Component
 public class TicketPurchaseConsumer {
@@ -45,11 +43,9 @@ public class TicketPurchaseConsumer {
             return;
         }
 
-        Event event = order.getEvent();
-
         try {
-            Ticket ticket = ticketService.reserveTicket(event);
-            orderItemService.createOrderItem(order, ticket, ticket.getPrice());
+            Ticket ticket = ticketService.reserveTicket(order.getEvent_id());
+            orderItemService.createOrderItem(order.getId(), ticket.getId(), ticket.getPrice());
             order.setStatus(Order.OrderStatus.CONFIRMED);
             orderRepository.save(order);
         // Không lấy được vé thì chuyển đơn sang FAILED và tăng lại tồn kho Redis.
