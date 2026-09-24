@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Build stage: đóng gói module start (kèm các module nó phụ thuộc) bằng Maven Wrapper.
-FROM eclipse-temurin:21-jdk AS build
+FROM eclipse-temurin:25-jdk AS build
 WORKDIR /workspace
 
 COPY . .
@@ -14,7 +14,7 @@ RUN --mount=type=cache,target=/root/.m2 \
 RUN java -Djarmode=tools -jar start/target/start-*.jar extract --layers --launcher --destination extracted
 
 # Runtime stage: chỉ chứa JRE và ứng dụng, chạy bằng user không phải root.
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 WORKDIR /app
 
 RUN addgroup -S app && adduser -S -G app app
