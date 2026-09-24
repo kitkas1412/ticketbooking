@@ -1,6 +1,7 @@
 name: Telegram Notify
 
-# Gửi thông báo Telegram khi repo có thay đổi.
+# Gửi thông báo Telegram khi repo có thay đổi (PR chỉ báo khi mở mới)
+# và xoá branch của PR sau khi merge.
 # Cần 2 repository secrets: TELEGRAM_BOT_TOKEN và TELEGRAM_CHAT_ID.
 
 on:
@@ -10,7 +11,8 @@ on:
   # pull_request_target để PR từ fork vẫn đọc được secrets.
   # Workflow không checkout code của PR nên an toàn.
   pull_request_target:
-    types: [opened, reopened, closed, ready_for_review]
+    # opened: gửi thông báo; closed: chỉ dùng để xoá branch sau khi merge.
+    types: [opened, closed]
   issues:
     types: [opened, closed, reopened]
   release:
@@ -20,6 +22,7 @@ permissions: {}
 
 jobs:
   notify:
+    if: ${{ github.event_name != 'pull_request_target' || github.event.action == 'opened' }}
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
@@ -83,13 +86,8 @@ jobs:
                   end
               elif env.EVENT == "pull_request_target" then
                 .pull_request as $pr
-                | (if .action == "closed" then (if $pr.merged then "✅ Đã merge" else "❌ Đã đóng" end)
-                   elif .action == "opened" then "🆕 Mới mở"
-                   elif .action == "reopened" then "🔄 Mở lại"
-                   elif .action == "ready_for_review" then "👀 Sẵn sàng review"
-                   else .action end) as $status
                 | header("🔀"; "\($project) PULL REQUEST #\($pr.number)")
-                + "<b>\($status)</b>\n\n"
+                + "<b>🆕 Mới mở\(if $pr.draft then " (Draft)" else "" end)</b>\n\n"
                 + field("👤"; "Dev"; dev)
                 + field("🌿"; "Branch"; "<code>\($pr.head.label | h)</code> → <code>\($pr.base.ref | h)</code>")
                 + field("📝"; "Content"; "")
@@ -130,3 +128,34 @@ jobs:
               -H "Content-Type: application/json" \
               -d @- \
               "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage"
+
+  # Xoá branch của PR sau khi merge. Bỏ qua PR từ fork (branch không nằm trong repo này).
+  delete-branch:
+    if: >-
+      ${{ github.event.action == 'closed'
+          && github.event.pull_request.merged
+          && github.event.pull_request.head.repo.full_name == github.repository
+          && github.event.pull_request.head.ref != github.event.repository.default_branch }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: write
+    steps:
+      - name: Delete merged branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          # Encode từng phần của tên branch, giữ nguyên dấu "/" (vd: feat/order).
+          ref=$(jq -rn --arg r "$HEAD_REF" '$r | split("/") | map(@uri) | join("/")')
+
+          status=$(curl -sS -o response.json -w '%{http_code}' -X DELETE \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/git/refs/heads/$ref")
+
+          case "$status" in
+            204) echo "🗑 Đã xoá branch $HEAD_REF" ;;
+            422|404) echo "::notice::Branch $HEAD_REF không còn tồn tại, bỏ qua." ;;
+            *) echo "::error::Không xoá được branch $HEAD_REF (HTTP $status)"; cat response.json; exit 1 ;;
+          esac
