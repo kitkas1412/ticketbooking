@@ -26,7 +26,7 @@ public class TicketServiceImpl implements TicketService {
     @Transactional
     public Ticket reserveTicket(UUID eventId) {
         // Query chưa dùng pessimistic locking; @Version trên Ticket cung cấp optimistic locking.
-        Ticket ticket = ticketRepository.findFirstByEventAndStatus(eventId, Ticket.TicketStatus.AVAILABLE)
+        Ticket ticket = ticketRepository.findFirstByEventIdAndStatus(eventId, Ticket.TicketStatus.AVAILABLE)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Ticket"));
         ticket.setStatus(Ticket.TicketStatus.SOLD);
         return ticketRepository.save(ticket);

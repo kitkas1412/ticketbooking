@@ -12,8 +12,7 @@ import java.util.UUID;
  */
 @Repository
 public interface TicketRepository extends JpaRepository<Ticket, UUID> {
-    // Derived query dùng Event nhưng field trên entity là eventId; cần sửa tên method cho khớp.
-    Optional<Ticket> findFirstByEventAndStatus(UUID eventId, Ticket.TicketStatus ticketStatus);
+    Optional<Ticket> findFirstByEventIdAndStatus(UUID eventId, Ticket.TicketStatus ticketStatus);
 
-    Long countByEventAndStatus(UUID eventId, Ticket.TicketStatus status);
+    Long countByEventIdAndStatus(UUID eventId, Ticket.TicketStatus status);
 }

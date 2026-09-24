@@ -45,7 +45,7 @@ class TicketInventoryReconcilerTest {
         UUID eventId = UUID.randomUUID();
         Ticket ticket = ticket(eventId);
         when(ticketRepository.findAll()).thenReturn(List.of(ticket));
-        when(ticketRepository.countByEventAndStatus(eventId, Ticket.TicketStatus.AVAILABLE)).thenReturn(7L);
+        when(ticketRepository.countByEventIdAndStatus(eventId, Ticket.TicketStatus.AVAILABLE)).thenReturn(7L);
 
         reconciler.reconcileAll();
 
@@ -66,7 +66,7 @@ class TicketInventoryReconcilerTest {
     void writesCountUnderTheSameKeyUsedByOrderFlow() {
         UUID eventId = UUID.randomUUID();
         when(ticketRepository.findAll()).thenReturn(List.of(ticket(eventId)));
-        when(ticketRepository.countByEventAndStatus(eventId, Ticket.TicketStatus.AVAILABLE)).thenReturn(7L);
+        when(ticketRepository.countByEventIdAndStatus(eventId, Ticket.TicketStatus.AVAILABLE)).thenReturn(7L);
 
         reconciler.reconcileAll();
 
