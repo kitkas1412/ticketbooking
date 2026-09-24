@@ -1,0 +1,26 @@
+name: PR Title
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions: {}
+
+jobs:
+  check:
+    name: Conventional title
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Check PR title
+        env:
+          # Truyền qua env thay vì nội suy trực tiếp vào script để tránh script injection.
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          pattern='^(feat|fix|refactor|perf|test|docs|build|ci|chore|style|revert)(\([a-z0-9._-]+\))?!?: [^ ].+$'
+          if [[ "$PR_TITLE" =~ $pattern ]]; then
+            echo "✅ PR title hợp lệ: $PR_TITLE"
+          else
+            echo "::error title=PR title không hợp lệ::'$PR_TITLE' cần theo dạng '<type>(<scope>)?: <mô tả>'. type: feat, fix, refactor, perf, test, docs, build, ci, chore, style, revert. Ví dụ: 'feat(order): add idempotency key', 'fix: prevent overselling tickets'."
+            exit 1
+          fi
