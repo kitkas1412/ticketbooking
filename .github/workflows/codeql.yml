@@ -1,0 +1,39 @@
+name: CodeQL
+
+# Quét lỗ hổng bảo mật trong code Java; kết quả ở tab Security → Code scanning.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # Quét lại hằng tuần (thứ Hai 07:00 giờ VN) để bắt lỗ hổng từ các query mới.
+    - cron: "0 0 * * 1"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: CodeQL (java)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v5
+
+      # build-mode none: phân tích trực tiếp mã nguồn, không cần build Maven.
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: java-kotlin
+          build-mode: none
+          queries: security-and-quality
+
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:java-kotlin"
