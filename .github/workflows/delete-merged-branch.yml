@@ -1,0 +1,41 @@
+name: Delete Merged Branch
+
+# Xoá branch của PR trên GitHub sau khi PR được merge.
+# Tách khỏi Telegram Notify để job chỉ xuất hiện khi PR đóng, không hiện "Skipped" trên PR đang mở.
+on:
+  # pull_request_target: luôn chạy bản workflow trên default branch; không checkout code của PR nên an toàn.
+  pull_request_target:
+    types: [closed]
+
+permissions: {}
+
+jobs:
+  # Bỏ qua PR bị đóng mà không merge, PR từ fork (branch không nằm trong repo này) và default branch.
+  delete-branch:
+    if: >-
+      ${{ github.event.pull_request.merged
+          && github.event.pull_request.head.repo.full_name == github.repository
+          && github.event.pull_request.head.ref != github.event.repository.default_branch }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: write
+    steps:
+      - name: Delete merged branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          # Encode từng phần của tên branch, giữ nguyên dấu "/" (vd: feat/order).
+          ref=$(jq -rn --arg r "$HEAD_REF" '$r | split("/") | map(@uri) | join("/")')
+
+          status=$(curl -sS -o response.json -w '%{http_code}' -X DELETE \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/git/refs/heads/$ref")
+
+          case "$status" in
+            204) echo "🗑 Đã xoá branch $HEAD_REF" ;;
+            422|404) echo "::notice::Branch $HEAD_REF không còn tồn tại, bỏ qua." ;;
+            *) echo "::error::Không xoá được branch $HEAD_REF (HTTP $status)"; cat response.json; exit 1 ;;
+          esac
