@@ -25,6 +25,7 @@
         <spring-boot.version>4.0.7</spring-boot.version>
         <jjwt.version>0.12.6</jjwt.version>
         <springdoc.version>3.1.0</springdoc.version>
+        <jacoco.version>0.8.15</jacoco.version>
     </properties>
 
     <!-- Khai báo TẤT CẢ module con — thứ tự không quan trọng,
@@ -49,6 +50,32 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <!-- Đo độ phủ test: mỗi module sinh báo cáo tại target/site/jacoco khi chạy `mvn verify`. -->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
     <name>ticketbooking</name>
     <description>ticketbooking</description>
