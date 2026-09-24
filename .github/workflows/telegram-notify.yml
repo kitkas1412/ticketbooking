@@ -29,50 +29,94 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           TELEGRAM_THREAD_ID: ${{ secrets.TELEGRAM_THREAD_ID }}
           EVENT: ${{ github.event_name }}
+          TZ: Asia/Ho_Chi_Minh
         run: |
+          export NOW=$(date '+%H:%M:%S %d/%m/%Y')
+
           if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
             echo "::warning::TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID chưa được cấu hình, bỏ qua."
             exit 0
           fi
 
-          # Dựng nội dung trực tiếp từ payload bằng jq để tránh script injection
-          # từ commit message / tiêu đề PR.
+          # Dựng nội dung (Telegram HTML) trực tiếp từ payload bằng jq để tránh
+          # script injection; mọi giá trị động đều được escape qua @html.
           TEXT=$(jq -r '
+            def h: tostring | @html;
             def first_line: split("\n")[0];
             def trunc(n): if length > n then .[0:n] + "…" else . end;
-            .repository.full_name as $repo
+            def divider: "━━━━━━━━━━━━━━━━";
+            def header(icon; title): "\(icon) <b>\(title | h)</b>\n\(divider)\n";
+            def field(icon; name; value): "\(icon) <b>\(name):</b> \(value)\n";
+            def dev: "<a href=\"https://github.com/\(.sender.login | h)\">\(.sender.login | h)</a>";
+            def link(text; url): "\n🔍 <a href=\"\(url | h)\">\(text)</a>";
+
+            (.repository.name | ascii_upcase) as $project
             | if env.EVENT == "push" then
                 (.ref | sub("^refs/(heads|tags)/"; "")) as $ref
                 | if .deleted then
-                    "🗑 \($repo)\n\(.sender.login) đã xoá \($ref)"
+                    header("🗑"; "\($project) DELETE")
+                    + field("👤"; "Dev"; dev)
+                    + field("🌿"; "Ref"; "<s>\($ref | h)</s>")
+                    + field("🕒"; "Time"; env.NOW)
                   elif (.ref | startswith("refs/tags/")) then
-                    "🏷 \($repo)\n\(.sender.login) tạo tag \($ref)\n\n\(.repository.html_url)/tree/\($ref)"
+                    header("🏷"; "\($project) NEW TAG")
+                    + field("👤"; "Dev"; dev)
+                    + field("🔖"; "Tag"; "<code>\($ref | h)</code>")
+                    + field("🕒"; "Time"; env.NOW)
+                    + link("Xem tag"; "\(.repository.html_url)/tree/\($ref)")
                   else
                     (.commits | length) as $n
-                    | "📦 \($repo) · \($ref)\n"
-                      + "\(.pusher.name) đã push \($n) commit"
-                      + (if .forced then " (force push ⚠️)" else "" end)
-                      + "\n\n"
-                      + ([.commits[-10:][] | "• \(.id[0:7]) \(.message | first_line | trunc(100)) — \(.author.name)"] | join("\n"))
-                      + (if $n > 10 then "\n… và \($n - 10) commit khác" else "" end)
-                      + "\n\n\(.compare)"
+                    | header("🚀"; "\($project) UPDATE")
+                    + (if .forced then "⚠️ <b>FORCE PUSH</b>\n" else "" end)
+                    + "\n"
+                    + field("👤"; "Dev"; dev)
+                    + field("🌿"; "Branch"; "<code>\($ref | h)</code>")
+                    + field("📝"; "Content"; if $n > 1 then "<i>(\($n) commits)</i>" else "" end)
+                    + "<blockquote>"
+                    + ([.commits[-10:][]
+                        | "<a href=\"\(.url | h)\">\(.id[0:7])</a> \(.message | first_line | trunc(120) | h)"]
+                       | join("\n"))
+                    + (if $n > 10 then "\n<i>… và \($n - 10) commit khác</i>" else "" end)
+                    + "</blockquote>\n"
+                    + field("🕒"; "Time"; env.NOW)
+                    + link("Review Code"; if $n == 1 then .head_commit.url else .compare end)
                   end
               elif env.EVENT == "pull_request_target" then
                 .pull_request as $pr
-                | (if .action == "closed" then (if $pr.merged then "✅ đã merge" else "❌ đã đóng" end)
-                   elif .action == "opened" then "🆕 mới mở"
-                   elif .action == "reopened" then "🔄 mở lại"
-                   elif .action == "ready_for_review" then "👀 sẵn sàng review"
+                | (if .action == "closed" then (if $pr.merged then "✅ Đã merge" else "❌ Đã đóng" end)
+                   elif .action == "opened" then "🆕 Mới mở"
+                   elif .action == "reopened" then "🔄 Mở lại"
+                   elif .action == "ready_for_review" then "👀 Sẵn sàng review"
                    else .action end) as $status
-                | "🔀 \($repo)\nPR #\($pr.number) \($status) bởi \(.sender.login)\n"
-                  + "\($pr.title | trunc(200))\n\($pr.head.label) → \($pr.base.ref)\n\n\($pr.html_url)"
+                | header("🔀"; "\($project) PULL REQUEST #\($pr.number)")
+                + "<b>\($status)</b>\n\n"
+                + field("👤"; "Dev"; dev)
+                + field("🌿"; "Branch"; "<code>\($pr.head.label | h)</code> → <code>\($pr.base.ref | h)</code>")
+                + field("📝"; "Content"; "")
+                + "<blockquote>\($pr.title | trunc(200) | h)</blockquote>\n"
+                + field("🕒"; "Time"; env.NOW)
+                + link("Review Code"; "\($pr.html_url)/files")
               elif env.EVENT == "issues" then
-                "🐞 \($repo)\nIssue #\(.issue.number) \(.action) bởi \(.sender.login)\n"
-                + "\(.issue.title | trunc(200))\n\n\(.issue.html_url)"
+                (if .action == "opened" then "🆕 Mới mở"
+                 elif .action == "closed" then "✅ Đã đóng"
+                 elif .action == "reopened" then "🔄 Mở lại"
+                 else .action end) as $status
+                | header("🐞"; "\($project) ISSUE #\(.issue.number)")
+                + "<b>\($status)</b>\n\n"
+                + field("👤"; "Dev"; dev)
+                + field("📝"; "Content"; "")
+                + "<blockquote>\(.issue.title | trunc(200) | h)</blockquote>\n"
+                + field("🕒"; "Time"; env.NOW)
+                + link("Xem issue"; .issue.html_url)
               elif env.EVENT == "release" then
-                "🚀 \($repo)\nRelease \(.release.tag_name) \(.release.name // "" )\n\n\(.release.html_url)"
+                header("🎉"; "\($project) RELEASE")
+                + field("👤"; "Dev"; dev)
+                + field("🔖"; "Version"; "<code>\(.release.tag_name | h)</code>")
+                + (if (.release.name // "") != "" then field("📝"; "Name"; .release.name | trunc(200) | h) else "" end)
+                + field("🕒"; "Time"; env.NOW)
+                + link("Xem release"; .release.html_url)
               else
-                "ℹ️ \($repo): \(env.EVENT)"
+                header("ℹ️"; "\($project) \(env.EVENT)")
               end
           ' "$GITHUB_EVENT_PATH")
 
@@ -80,7 +124,7 @@ jobs:
             --arg chat_id "$TELEGRAM_CHAT_ID" \
             --arg thread_id "$TELEGRAM_THREAD_ID" \
             --arg text "$TEXT" \
-            '{chat_id: $chat_id, text: ($text | .[0:4000]), disable_web_page_preview: true}
+            '{chat_id: $chat_id, text: $text, parse_mode: "HTML", link_preview_options: {is_disabled: true}}
              + (if $thread_id != "" then {message_thread_id: ($thread_id | tonumber)} else {} end)' \
           | curl -sS --fail-with-body \
               -H "Content-Type: application/json" \
