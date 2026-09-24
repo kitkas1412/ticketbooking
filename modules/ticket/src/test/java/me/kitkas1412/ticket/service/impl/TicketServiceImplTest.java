@@ -33,7 +33,7 @@ class TicketServiceImplTest {
     void reserveTicketMarksFirstAvailableTicketAsSold() {
         UUID eventId = UUID.randomUUID();
         Ticket ticket = Ticket.builder().eventId(eventId).seatCode(1).price(BigDecimal.TEN).build();
-        when(ticketRepository.findFirstByEventAndStatus(eventId, Ticket.TicketStatus.AVAILABLE))
+        when(ticketRepository.findFirstByEventIdAndStatus(eventId, Ticket.TicketStatus.AVAILABLE))
                 .thenReturn(Optional.of(ticket));
         when(ticketRepository.save(ticket)).thenReturn(ticket);
 
@@ -47,7 +47,7 @@ class TicketServiceImplTest {
     @Test
     void reserveTicketThrowsWhenNoTicketIsAvailable() {
         UUID eventId = UUID.randomUUID();
-        when(ticketRepository.findFirstByEventAndStatus(eventId, Ticket.TicketStatus.AVAILABLE))
+        when(ticketRepository.findFirstByEventIdAndStatus(eventId, Ticket.TicketStatus.AVAILABLE))
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> ticketService.reserveTicket(eventId))

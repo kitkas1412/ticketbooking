@@ -27,10 +27,9 @@ jobs:
           java-version: "21"
           cache: maven
 
-      # Build với JDK 21: từ JDK 23 annotation processing bị tắt mặc định nên Lombok
-      # không chạy ở các module không khai báo annotationProcessorPaths.
+      # Chỉ unit test; integration test (*IT) chạy ở job riêng bên dưới.
       - name: Build and run tests
-        run: ./mvnw -B -ntp clean verify
+        run: ./mvnw -B -ntp clean verify -DskipITs
 
       # Tóm tắt kết quả test ở trang Summary và annotate test lỗi trên PR.
       # annotate_only để không cần quyền checks: write (PR từ fork chỉ có token read-only).
@@ -64,6 +63,42 @@ jobs:
           path: "**/target/surefire-reports/"
           retention-days: 7
 
+  # Integration test (*IT trong module start) với PostgreSQL, Redis, RabbitMQ thật qua
+  # Testcontainers; runner ubuntu-latest có sẵn Docker.
+  integration-test:
+    name: Integration Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Run integration tests
+        run: ./mvnw -B -ntp clean verify -pl start -am
+
+      - name: Integration test report
+        if: ${{ !cancelled() }}
+        uses: mikepenz/action-junit-report@v5
+        with:
+          report_paths: "start/target/failsafe-reports/TEST-*.xml"
+          check_name: Integration Test Report
+          annotate_only: true
+          detailed_summary: true
+          require_tests: true
+
+      - name: Upload integration test reports
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: failsafe-reports
+          path: start/target/failsafe-reports/
+          retention-days: 7
+
   # Chặn PR thêm/nâng dependency có lỗ hổng mức high trở lên.
   dependency-review:
     name: Dependency Review
@@ -79,10 +114,10 @@ jobs:
           # Kết quả ghi ở job Summary; không comment lên PR vì PR từ fork chỉ có token read-only.
           comment-summary-in-pr: never
 
-  # Báo Telegram khi build trên main bị hỏng.
+  # Báo Telegram khi build hoặc integration test trên main bị hỏng.
   notify-failure:
     name: Notify failure
-    needs: build
+    needs: [build, integration-test]
     if: ${{ failure() && github.event_name == 'push' }}
     runs-on: ubuntu-latest
     timeout-minutes: 2

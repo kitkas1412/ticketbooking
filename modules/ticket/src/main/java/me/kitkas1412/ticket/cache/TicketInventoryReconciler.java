@@ -28,7 +28,7 @@ public class TicketInventoryReconciler {
         List<Ticket> tickets = ticketRepository.findAll();
 
         for (Ticket ticket : tickets){
-            Long count = ticketRepository.countByEventAndStatus(ticket.getEventId(), Ticket.TicketStatus.AVAILABLE);
+            Long count = ticketRepository.countByEventIdAndStatus(ticket.getEventId(), Ticket.TicketStatus.AVAILABLE);
             // Key hiện dùng ID vé, trong khi luồng đặt vé dùng ID sự kiện.
             String key = TicketInventoryKey.availableTickets(ticket.getId());
 
