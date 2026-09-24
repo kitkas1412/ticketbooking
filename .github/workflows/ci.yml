@@ -50,3 +50,66 @@ jobs:
           name: surefire-reports
           path: "**/target/surefire-reports/"
           retention-days: 7
+
+  # Chặn PR thêm/nâng dependency có lỗ hổng mức high trở lên.
+  dependency-review:
+    name: Dependency Review
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          # Kết quả ghi ở job Summary; không comment lên PR vì PR từ fork chỉ có token read-only.
+          comment-summary-in-pr: never
+
+  # Báo Telegram khi build trên main bị hỏng.
+  notify-failure:
+    name: Notify failure
+    needs: build
+    if: ${{ failure() && github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Send Telegram message
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_THREAD_ID: ${{ secrets.TELEGRAM_THREAD_ID }}
+          TZ: Asia/Ho_Chi_Minh
+        run: |
+          export NOW=$(date '+%H:%M:%S %d/%m/%Y')
+          export RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "::warning::TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID chưa được cấu hình, bỏ qua."
+            exit 0
+          fi
+
+          # Cùng format với telegram-notify.yml; giá trị động được escape qua @html.
+          TEXT=$(jq -r '
+            def h: tostring | @html;
+            def trunc(n): if length > n then .[0:n] + "…" else . end;
+            "🔴 <b>\(.repository.name | ascii_upcase | h) CI FAILED</b>\n"
+            + "━━━━━━━━━━━━━━━━\n\n"
+            + "👤 <b>Dev:</b> <a href=\"https://github.com/\(.sender.login | h)\">\(.sender.login | h)</a>\n"
+            + "🌿 <b>Branch:</b> <code>\(.ref | sub("^refs/heads/"; "") | h)</code>\n"
+            + "📝 <b>Content:</b>\n"
+            + "<blockquote><a href=\"\(.head_commit.url | h)\">\(.head_commit.id[0:7])</a> \(.head_commit.message | split("\n")[0] | trunc(120) | h)</blockquote>\n"
+            + "🕒 <b>Time:</b> \(env.NOW)\n\n"
+            + "🔍 <a href=\"\(env.RUN_URL | h)\">Xem log CI</a>"
+          ' "$GITHUB_EVENT_PATH")
+
+          jq -n \
+            --arg chat_id "$TELEGRAM_CHAT_ID" \
+            --arg thread_id "$TELEGRAM_THREAD_ID" \
+            --arg text "$TEXT" \
+            '{chat_id: $chat_id, text: $text, parse_mode: "HTML", link_preview_options: {is_disabled: true}}
+             + (if $thread_id != "" then {message_thread_id: ($thread_id | tonumber)} else {} end)' \
+          | curl -sS --fail-with-body \
+              -H "Content-Type: application/json" \
+              -d @- \
+              "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage"
