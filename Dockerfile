@@ -1,25 +1,35 @@
-# Build stage: biên dịch và đóng gói bằng Maven với JDK 21.
-# Các đường dẫn COPY còn theo cấu trúc cũ, cần đồng bộ với dự án nhiều module.
-FROM maven:3.9-eclipse-temurin-21 AS build
-WORKDIR /app
+# syntax=docker/dockerfile:1
 
-COPY ../pom.xml ./
+# Build stage: đóng gói module start (kèm các module nó phụ thuộc) bằng Maven Wrapper.
+FROM eclipse-temurin:21-jdk AS build
+WORKDIR /workspace
 
-# Tải trước dependency để tận dụng Docker layer cache.
-RUN mvn dependency:go-offline
+COPY . .
 
-COPY src src
+# Cache ~/.m2 giữa các lần build để không tải lại dependency. Test đã chạy ở CI nên bỏ qua.
+RUN --mount=type=cache,target=/root/.m2 \
+    ./mvnw -B -ntp package -pl start -am -DskipTests
 
-RUN mvn clean package -DskipTests -B
+# Tách JAR thành các layer (dependency ít đổi, code đổi thường xuyên) để image đẩy lên nhanh hơn.
+RUN java -Djarmode=tools -jar start/target/start-*.jar extract --layers --launcher --destination extracted
 
-# Runtime stage: chỉ chứa JRE và file JAR đã build.
+# Runtime stage: chỉ chứa JRE và ứng dụng, chạy bằng user không phải root.
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-COPY --from=build /app/target/*.jar app.jar
+RUN addgroup -S app && adduser -S -G app app
+
+COPY --from=build /workspace/extracted/dependencies/ ./
+COPY --from=build /workspace/extracted/spring-boot-loader/ ./
+COPY --from=build /workspace/extracted/snapshot-dependencies/ ./
+COPY --from=build /workspace/extracted/application/ ./
+
+USER app
 
 # Cổng HTTP của ứng dụng trong container.
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Giới hạn heap theo bộ nhớ của container thay vì của máy host.
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75"
 
+ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]

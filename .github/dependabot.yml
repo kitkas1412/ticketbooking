@@ -33,3 +33,16 @@ updates:
     groups:
       github-actions:
         patterns: ["*"]
+
+  # Base image trong Dockerfile (JDK build, JRE runtime).
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: Asia/Ho_Chi_Minh
+    commit-message:
+      prefix: build
+      include: scope
+    labels: [dependencies]
