@@ -1,4 +1,4 @@
-package me.kitkas1412.ticketbooking;
+package me.kitkas1412;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.AutoConfigurationPackage;
@@ -16,13 +16,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * class {@code @ConfigurationProperties} (vd: JwtProperties).
  */
 @SpringBootApplication(scanBasePackages = "me.kitkas1412")
-@AutoConfigurationPackage(basePackages = "me.kitkas1412")
-@ConfigurationPropertiesScan("me.kitkas1412")
-@EnableScheduling
-public class TicketbookingApplication {
-
+public class StartApplication {
     public static void main(String[] args) {
-        SpringApplication.run(TicketbookingApplication.class, args);
+        SpringApplication.run(StartApplication.class, args);
     }
-
 }
