@@ -1,4 +1,4 @@
-# Ticket Booking System
+# Tixora
 
 A Spring Boot service for creating events and selling limited-availability tickets under high-concurrency flash-sale conditions, without overselling.
 
