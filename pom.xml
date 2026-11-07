@@ -20,6 +20,10 @@
          Maven reactor tự tính toán thứ tự build dựa trên dependency -->
     <modules>
         <module>start</module>
+        <module>controller</module>
+        <module>application</module>
+        <module>infrastructure</module>
+        <module>domain</module>
     </modules>
 
     <dependencyManagement>
